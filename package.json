@@ -1,0 +1,20 @@
+{
+  "name": "secure-save",
+  "version": "1.0.0",
+  "description": "Secure Save - Personal Secure Vault",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=@secure-save/api",
+    "dev:mobile": "npm run dev --workspace=@secure-save/mobile",
+    "build:api": "npm run build --workspace=@secure-save/api",
+    "build:mobile": "npm run build --workspace=@secure-save/mobile",
+    "test": "npm test --workspaces"
+  },
+  "keywords": [],
+  "author": "AK",
+  "license": "ISC"
+}
