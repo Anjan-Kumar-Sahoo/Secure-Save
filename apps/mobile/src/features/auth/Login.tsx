@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowRight, Eye, EyeOff, Fingerprint, Sparkles } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Fingerprint, LockKeyhole, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import api, { getApiErrorMessage } from '../../services/api';
@@ -36,19 +36,19 @@ export const Login = () => {
   };
 
   return (
-    <div className="app-shell flex min-h-screen items-center justify-center p-5">
-      <div className="w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-[#0f112a]/80 shadow-2xl lg:grid lg:grid-cols-[1.05fr_.95fr]">
+    <div className="auth-shell app-shell flex w-full items-center justify-center">
+      <div className="auth-card w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#0f112a]/80 shadow-2xl lg:max-w-5xl lg:grid lg:grid-cols-[1.05fr_.95fr]">
         <div className="relative hidden min-h-[650px] overflow-hidden bg-gradient-to-br from-[#8069f3] via-[#39286e] to-[#10122b] p-10 lg:block">
           <div className="absolute -right-32 -top-20 h-96 w-96 rounded-full border-[55px] border-white/10" />
           <div className="absolute -bottom-28 -left-20 h-80 w-80 rounded-full border-[45px] border-[#db75f5]/20" />
           <div className="relative flex h-full flex-col justify-between"><div><div className="mb-16 flex items-center gap-3"><img src="/secure-save-logo.png" alt="Secure Save" className="h-14 w-14 rounded-2xl object-cover" /><span className="font-['Space_Grotesk'] text-xl font-bold">Secure Save</span></div><p className="eyebrow text-white/60">Personal digital vault</p><h1 className="mt-4 max-w-md font-['Space_Grotesk'] text-5xl font-bold leading-tight">Everything valuable.<br /><span className="text-[#e7b6ff]">One safe place.</span></h1><p className="mt-6 max-w-sm text-sm leading-6 text-white/65">Cards, passwords, documents and memories protected with a vault designed around you.</p></div><div className="flex items-center gap-3 text-sm text-white/65"><Sparkles className="h-4 w-4 text-[#e7b6ff]" /> Private by design, secure by default</div></div>
         </div>
-        <div className="p-6 sm:p-12 lg:p-14">
-          <div className="mb-10 lg:hidden"><img src="/secure-save-logo.png" alt="Secure Save" className="mb-5 h-16 w-16 rounded-2xl object-cover" /><p className="eyebrow">Secure Save</p></div>
+        <div className="w-full p-5 sm:p-12 lg:p-14">
+          <div className="mb-8 flex items-center gap-3 lg:hidden"><img src="/secure-save-logo.png" alt="Secure Save" className="h-12 w-12 max-h-12 max-w-12 rounded-2xl object-cover" /><div><p className="eyebrow">Secure Save</p><p className="text-sm font-semibold">Personal digital vault</p></div></div>
           <p className="eyebrow">Welcome back</p><h2 className="mt-2 font-['Space_Grotesk'] text-3xl font-bold">Unlock your vault</h2><p className="mt-2 text-sm text-[#9293b4]">Your private space is waiting for you.</p>
           {error && <p role="alert" className="mt-5 rounded-2xl border border-[#ff829a]/25 bg-[#ff829a]/10 p-3 text-sm text-[#ffb2c0]">{error}</p>}
           <form onSubmit={handleSubmit(onSubmit)} className="mt-9 space-y-5">
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.03] p-3"><img src="/secure-save-logo.png" alt="" className="h-10 w-10 rounded-xl object-cover" /><div className="min-w-0"><p className="text-[11px] text-[#777898]">Unlocking vault for</p><p className="truncate text-sm font-semibold text-white">{email || 'No email saved yet'}</p></div></div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#9a7cff]/15 text-[#b39cff]"><LockKeyhole className="h-5 w-5" /></div><div className="min-w-0"><p className="text-[11px] text-[#777898]">Unlocking vault for</p><p className="truncate text-sm font-semibold text-white">{email || 'No email saved yet'}</p></div></div>
             <label className="block"><span className="mb-2 block text-xs font-semibold text-[#aaa8c8]">Vault PIN</span><span className="relative block"><input {...register('pin')} type={showPin ? 'text' : 'password'} inputMode="numeric" placeholder="••••••" maxLength={6} className="input-premium pr-12 tracking-[.4em]" /><button type="button" onClick={() => setShowPin(!showPin)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9293b4]">{showPin ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></span>{errors.pin && <span className="mt-1 block text-xs text-[#ff829a]">{errors.pin.message}</span>}</label>
             <button disabled={isSubmitting || !email} className="btn-primary flex w-full items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">{isSubmitting ? 'Unlocking...' : 'Unlock vault'}<ArrowRight className="h-4 w-4" /></button>
           </form>
