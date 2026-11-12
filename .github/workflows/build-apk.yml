@@ -20,22 +20,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Monorepo Dependencies
-        run: npm ci || npm install
-
-      - name: Build Shared Types
-        run: npm run build --workspace=@secure-save/shared-types || true
+        run: |
+          npm install
+          npm run build --workspace=@secure-save/shared-types || true
 
       - name: Build Mobile Web App
         run: |
