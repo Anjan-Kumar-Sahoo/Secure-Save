@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { BankDetail } from '../models/bank-model';
-import { Card } from '../cards/models/card-model';
-import { asyncHandler } from '../../utils/error-handler';
-import { createError } from '../../utils/error-handler';
+import { Card } from '../../cards/models/card-model';
+import { asyncHandler } from '../../../utils/error-handler';
+import { createError } from '../../../utils/error-handler';
 
 const getBanks = asyncHandler(async (req: any, res: Response) => {
   const userId = req.userId;

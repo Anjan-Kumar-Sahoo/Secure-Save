@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import { body } from 'express-validator';
 import { User } from '../models/user-model';
 import { otpService } from '../services/otp-service';
-import { createError } from '../utils/error-handler';
+import { createError } from '../../../utils/error-handler';
 
 const router = Router();
 

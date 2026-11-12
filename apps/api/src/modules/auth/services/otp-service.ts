@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { Otp } from '../models/otp-model';
 import { sendEmail } from '../utils/email-utils';
-import { createError } from '../utils/error-handler';
+import { createError } from '../../../utils/error-handler';
 
 const SALT_ROUNDS = 10;
 const MAX_OTP_ATTEMPTS = 5;
@@ -33,23 +33,23 @@ class OtpService {
   async verifyOtp(email: string, otp: string, purpose: string): Promise<boolean> {
     const otpRecord = await Otp.findOne({ email, purpose, consumedAt: null });
     if (!otpRecord) {
-      throw createError('Invalid OTP', 'VerifyOtp');
+      throw createError(new Error('Invalid OTP'), 'VerifyOtp');
     }
 
     if (new Date() > otpRecord.expiresAt) {
       await Otp.findByIdAndUpdate(otpRecord._id, { consumedAt: new Date() });
-      throw createError('OTP expired', 'VerifyOtp');
+      throw createError(new Error('OTP expired'), 'VerifyOtp');
     }
 
     if (otpRecord.attempts >= MAX_OTP_ATTEMPTS) {
       await Otp.findByIdAndUpdate(otpRecord._id, { consumedAt: new Date() });
-      throw createError('Maximum attempts exceeded', 'VerifyOtp');
+      throw createError(new Error('Maximum attempts exceeded'), 'VerifyOtp');
     }
 
     const isValid = await bcrypt.compare(otp, otpRecord.otpHash);
     if (!isValid) {
       await Otp.findByIdAndUpdate(otpRecord._id, { $inc: { attempts: 1 } });
-      throw createError('Invalid OTP', 'VerifyOtp');
+      throw createError(new Error('Invalid OTP'), 'VerifyOtp');
     }
 
     await Otp.findByIdAndUpdate(otpRecord._id, {
@@ -73,7 +73,7 @@ class OtpService {
     }).sort({ createdAt: -1 });
 
     if (lastOtp) {
-      throw createError('Please wait before requesting another OTP', 'OtpService');
+      throw createError(new Error('Please wait before requesting another OTP'), 'OtpService');
     }
   }
 

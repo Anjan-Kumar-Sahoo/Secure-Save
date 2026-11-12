@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 
-const ALGORITHM = 'AES-256-GCM';
+const ALGORITHM = 'aes-256-gcm' as const;
 const SALT_LENGTH = 16;
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
@@ -27,11 +27,7 @@ class CryptoUtil {
     const cipher = createCipheriv(ALGORITHM, key, iv);
     const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
 
-    const encryptedWithTag = Buffer.concat([
-      iv,
-      encrypted,
-      cipher.final()
-    ]);
+    const encryptedWithTag = Buffer.concat([iv, encrypted, cipher.getAuthTag()]);
 
     return {
       encrypted: encryptedWithTag.toString('hex'),
@@ -41,11 +37,11 @@ class CryptoUtil {
 
   static decrypt(encryptedHex: string, key: Buffer, iv?: Buffer, tag?: Buffer): string {
     const encrypted = Buffer.from(encryptedHex, 'hex');
-    const iv = iv || encrypted.subarray(0, IV_LENGTH);
+    const initializationVector = iv || encrypted.subarray(0, IV_LENGTH);
     const ciphertext = encrypted.subarray(IV_LENGTH, IV_LENGTH + encrypted.length - IV_LENGTH - TAG_LENGTH);
     const authTag = encrypted.subarray(encrypted.length - TAG_LENGTH);
 
-    const decipher = createDecipheriv(ALGORITHM, key, iv);
+    const decipher = createDecipheriv(ALGORITHM, key, initializationVector);
     decipher.setAAD(Buffer.from(''))
     decipher.setAuthTag(authTag);
 

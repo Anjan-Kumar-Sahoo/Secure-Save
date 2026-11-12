@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
 import { body } from 'express-validator';
 import { otpService } from '../services/otp-service';
-import { validationErrorHandler } from '../../utils/error-handler';
+import { validationErrorHandler } from '../../../utils/error-handler';
 import { User } from '../models/user-model';
 
 const router = Router();

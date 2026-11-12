@@ -11,7 +11,7 @@ interface AuthRequest extends Request {
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.cookies?.__Secure-sid || req.header('Authorization')?.replace('Bearer ', '');
+    const token = req.cookies?.['__Secure-sid'] || req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
       return res.status(401).json({
@@ -21,7 +21,13 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     }
 
     const secret = process.env.JWT_SECRET || 'default-secret';
-    const decoded = jwt.verify(token, secret) as { userId: string; email: string };
+    const decoded = jwt.verify(token, secret);
+    if (typeof decoded === 'string' || !decoded.userId || !decoded.email) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token'
+      });
+    }
 
     req.userId = decoded.userId;
     req.email = decoded.email;

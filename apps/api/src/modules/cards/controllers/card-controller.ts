@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { User } from '../auth/models/user-model';
+import { User } from '../../auth/models/user-model';
 import { Card } from '../models/card-model';
-import { asyncHandler } from '../../utils/error-handler';
-import { createError } from '../../utils/error-handler';
+import { asyncHandler } from '../../../utils/error-handler';
+import { createError } from '../../../utils/error-handler';
 
 const getCards = asyncHandler(async (req: any, res: Response) => {
   const userId = req.userId;

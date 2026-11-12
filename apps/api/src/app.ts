@@ -5,7 +5,6 @@ import { cardRoutes } from './modules/cards/routes';
 import { bankRoutes } from './modules/bank/routes';
 import { passwordRoutes } from './modules/passwords/routes';
 import { collectionRoutes } from './modules/collections/routes';
-import { fileRoutes } from './modules/files/routes';
 
 const app = express();
 
@@ -14,7 +13,6 @@ app.use('/api/cards', cardRoutes);
 app.use('/api/banks', bankRoutes);
 app.use('/api/passwords', passwordRoutes);
 app.use('/api/collections', collectionRoutes);
-app.use('/api/files', fileRoutes);
 
 app.use(errorHandler);
 

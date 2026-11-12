@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { PasswordEntry } from '../models/password-model';
-import { asyncHandler, createError } from '../../utils/error-handler';
+import { asyncHandler, createError } from '../../../utils/error-handler';
 
 const getPasswords = asyncHandler(async (req: any, res: Response) => {
   const userId = req.userId;

@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { CollectionItem } from '../models/collection-model';
-import { asyncHandler, createError } from '../../utils/error-handler';
+import { asyncHandler, createError } from '../../../utils/error-handler';
 
 const getCollectionItems = asyncHandler(async (req: any, res: Response) => {
   const userId = req.userId;

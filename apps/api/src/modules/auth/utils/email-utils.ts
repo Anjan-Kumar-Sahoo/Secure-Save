@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: parseInt(process.env.SMTP_PORT || '587') === 465,
@@ -39,7 +39,7 @@ export const sendEmail = async (to: string, options: {
 const generateEmailTemplate = async (template: string, data: Record<string, any>): Promise<string> => {
   switch (template) {
     case 'otp-verification':
-      return generateOtpEmailTemplate(data);
+      return generateOtpEmailTemplate(data as { otp: string; expiresAt: Date });
     default:
       throw new Error(`Unknown email template: ${template}`);
   }

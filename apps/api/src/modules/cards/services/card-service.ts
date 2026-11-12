@@ -1,5 +1,5 @@
 import { Card } from '../models/card-model';
-import { User } from '../auth/models/user-model';
+import { User } from '../../auth/models/user-model';
 
 class CardService {
   static async createCard(userId: string, cardData: any): Promise<any> {

@@ -29,10 +29,14 @@ export interface DatabaseStats {
 }
 
 export const getDatabaseStats = async (): Promise<DatabaseStats> => {
-  const stats = await mongoose.connection.db.stats();
+  const database = mongoose.connection.db;
+  if (!database) {
+    throw new Error('Database connection is not initialized');
+  }
+  const stats = await database.stats();
   return {
     connections: mongoose.connections.length,
-    collections: await mongoose.connection.db.collections().then(c => c.length),
+    collections: await database.collections().then(c => c.length),
     host: mongoose.connections[0].host
   };
 };
