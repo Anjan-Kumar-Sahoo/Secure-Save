@@ -55,7 +55,7 @@ export const AddPassword = () => {
   };
 
   return (
-    <div className="flex-1 p-6 bg-[#0B0D12] text-[#F5F7FA]">
+    <div className="app-shell min-h-screen flex-1 p-6 text-[#F5F7FA]">
       <div className="max-w-md space-y-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">Add Password</h2>

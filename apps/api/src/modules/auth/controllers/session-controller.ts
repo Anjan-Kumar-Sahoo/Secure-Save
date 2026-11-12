@@ -12,7 +12,7 @@ dotenv.config();
 
 router.post('/login', [
   body('email').isEmail().withMessage('Invalid email'),
-  body('pin').isLength({ min: 4, max: 6 }).withMessage('PIN must be 4-6 digits'),
+  body('pin').isLength({ min: 6, max: 6 }).withMessage('PIN must be exactly 6 digits'),
   body('pin').isNumeric().withMessage('PIN must be numeric')
 ], async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -23,6 +23,13 @@ router.post('/login', [
       return res.status(404).json({
         success: false,
         message: 'Invalid credentials'
+      });
+    }
+
+    if (user.status !== 'active' || !user.emailVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Complete registration before logging in'
       });
     }
 

@@ -11,7 +11,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
-    <div className="min-h-screen bg-[#0B0D12] text-[#F5F7FA]">
+    <div className="app-shell min-h-screen text-[#F5F7FA]">
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

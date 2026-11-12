@@ -10,12 +10,10 @@ const config: CapacitorConfig = {
       backgroundColor: '#0B0D12'
     },
     SplashScreen: {
-      showDefault: false,
-      imageResources: [
-        'assets/icon/dark.png',
-        'assets/icon/light.png'
-      ],
-      layout: 'single'
+      launchAutoHide: true,
+      backgroundColor: '#070817',
+      showSpinner: false,
+      androidSplashResourceName: 'splash'
     }
   }
 };

@@ -19,7 +19,7 @@ router.post('/send', [
     const email = String(req.body.email).trim().toLowerCase();
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    if (existingUser?.status === 'active') {
       return res.status(409).json({
         success: false,
         message: 'Email already registered'
@@ -54,16 +54,8 @@ router.post('/verify', [
 
     await User.findOneAndUpdate(
       { email },
-      { emailVerified: true, status: 'active' }
+      { emailVerified: true }
     );
-
-    const token = 'placeholder-jwt-token';
-    res.cookie('__Secure-sid', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 3600000
-    });
 
     res.json({
       success: true,

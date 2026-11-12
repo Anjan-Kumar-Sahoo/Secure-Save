@@ -36,8 +36,8 @@ export const CollectionDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0D12] text-[#F5F7FA]">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#293244] bg-[#141821]">
+    <div className="app-shell min-h-screen text-[#F5F7FA]">
+      <nav className="flex items-center justify-between border-b border-white/10 bg-[#0b0d20]/80 px-5 py-4 backdrop-blur-xl">
         <h1 className="text-xl font-bold text-[#F5F7FA]">Collection</h1>
         <div className="flex items-center gap-2">
           <button

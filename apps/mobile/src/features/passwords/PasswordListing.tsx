@@ -40,9 +40,10 @@ export const PasswordListing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0D12] text-[#F5F7FA]">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#293244] bg-[#141821]">
-        <h1 className="text-xl font-bold text-[#F5F7FA]">Passwords</h1>
+    <div className="app-shell min-h-screen">
+      <nav className="border-b border-white/10 bg-[#0b0d20]/80 px-5 py-4 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+        <h1 className="font-['Space_Grotesk'] text-xl font-bold">Passwords</h1>
         <button
           onClick={() => navigate('/passwords/add')}
           className="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl"
@@ -50,9 +51,10 @@ export const PasswordListing = () => {
           <Key className="w-4 h-4" />
           Add Password
         </button>
+        </div>
       </nav>
 
-      <main className="p-6">
+      <main className="page-wrap pt-7">
         {isLoading ? (
           <div className="min-h-64 flex items-center justify-center text-[#929BAA]">
             <span>Loading...</span>
@@ -118,7 +120,7 @@ export const PasswordListing = () => {
                 ))}
               </div>
             ) : (
-              <div className="py-12 text-center text-[#929BAA]">
+              <div className="glass py-12 text-center text-[#9293b4]">
                 <p>No passwords saved yet.</p>
                 <p className="mt-2">Add your first credential to get started.</p>
               </div>

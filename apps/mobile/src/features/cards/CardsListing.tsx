@@ -44,9 +44,10 @@ export const CardsListing = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#0B0D12] text-[#F5F7FA]">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#293244] bg-[#141821]">
-        <h1 className="text-xl font-bold text-[#F5F7FA]">Cards</h1>
+    <div className="app-shell min-h-screen">
+      <nav className="border-b border-white/10 bg-[#0b0d20]/80 px-5 py-4 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+        <h1 className="font-['Space_Grotesk'] text-xl font-bold">Cards</h1>
         <button
           onClick={() => navigate('/cards/add')}
           className="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl"
@@ -54,23 +55,24 @@ export const CardsListing = () => {
           <Plus className="w-4 h-4" />
           Add Card
         </button>
+        </div>
       </nav>
 
-      <main className="p-6">
+      <main className="page-wrap pt-7">
         {isLoading || isLoadingBanks ? (
           <div className="min-h-64 flex items-center justify-center text-[#929BAA]">
             <span>Loading...</span>
           </div>
         ) : (
           <>
-            <section className="mb-8">
-              <h2 className="text-xl font-bold text-[#F5F7FA] mb-6">Bank Details</h2>
+            <section className="glass mb-8 p-5">
+              <h2 className="mb-6 text-xl font-bold">Bank Details</h2>
               {banks.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {banks.map((bank) => (
                     <div
                       key={bank.id}
-                      className="grid grid-cols-2 gap-2 border-b border-[#293244] py-4"
+                      className="grid grid-cols-2 gap-2 border-b border-white/10 py-4 last:border-0"
                     >
                       <div>
                         <p className="font-semibold text-sm">{bank.title}</p>
@@ -87,7 +89,7 @@ export const CardsListing = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-[#929BAA] py-8">No bank details saved yet.</p>
+                <p className="py-8 text-[#9293b4]">No bank details saved yet.</p>
               )}
             </section>
 
@@ -124,7 +126,7 @@ export const CardsListing = () => {
                 ))}
               </div>
             ) : (
-              <div className="py-12 text-center text-[#929BAA]">
+              <div className="glass py-12 text-center text-[#9293b4]">
                 <p>No saved cards yet.</p>
                 <p className="mt-2">Add your first card to get started.</p>
               </div>

@@ -37,9 +37,9 @@ router.post('/reset', [
   body('email').isEmail().withMessage('Invalid email'),
   body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
   body('otp').isNumeric().withMessage('OTP must be numeric'),
-  body('newPin').isLength({ min: 4, max: 6 }).withMessage('PIN must be 4-6 digits'),
+  body('newPin').isLength({ min: 6, max: 6 }).withMessage('PIN must be exactly 6 digits'),
   body('newPin').isNumeric().withMessage('PIN must be numeric'),
-  body('confirmPin').isLength({ min: 4, max: 6 }).withMessage('PIN must be 4-6 digits'),
+  body('confirmPin').isLength({ min: 6, max: 6 }).withMessage('PIN must be exactly 6 digits'),
   body('confirmPin').isNumeric().withMessage('PIN must be numeric'),
   body('confirmPin').custom((value, { req }) => {
     if (value !== req.body.newPin) {
@@ -84,9 +84,9 @@ router.post('/reset', [
 
 router.post('/complete-registration', [
   body('email').isEmail().withMessage('Invalid email'),
-  body('pin').isLength({ min: 4, max: 6 }).withMessage('PIN must be 4-6 digits'),
+  body('pin').isLength({ min: 6, max: 6 }).withMessage('PIN must be exactly 6 digits'),
   body('pin').isNumeric().withMessage('PIN must be numeric'),
-  body('confirmPin').isLength({ min: 4, max: 6 }).withMessage('PIN must be 4-6 digits'),
+  body('confirmPin').isLength({ min: 6, max: 6 }).withMessage('PIN must be exactly 6 digits'),
   body('confirmPin').isNumeric().withMessage('PIN must be numeric'),
   body('confirmPin').custom((value, { req }) => {
     if (value !== req.body.pin) {

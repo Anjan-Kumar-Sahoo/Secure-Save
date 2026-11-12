@@ -5,9 +5,10 @@ import { z } from 'zod';
 import { ArrowRight, Eye, EyeOff, Fingerprint, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import api, { getApiErrorMessage } from '../../services/api';
 
 const loginSchema = z.object({
-  pin: z.string().min(4, 'PIN must be at least 4 digits').max(6, 'PIN must be at most 6 digits').regex(/^\d+$/, 'PIN must be numeric'),
+  pin: z.string().length(6, 'PIN must be exactly 6 digits').regex(/^\d+$/, 'PIN must be numeric'),
 });
 type LoginForm = z.infer<typeof loginSchema>;
 
@@ -16,14 +17,22 @@ export const Login = () => {
   const { setAuth, rememberedEmail, user } = useAuthStore();
   const email = rememberedEmail || user?.email || null;
   const [showPin, setShowPin] = React.useState(false);
+  const [error, setError] = React.useState('');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
   const onSubmit = async (data: LoginForm) => {
     if (!email) {
       return;
     }
-    setAuth({ email }, 'mock-token');
-    navigate('/dashboard');
+    setError('');
+    try {
+      const response = await api.post('/auth/session/login', { email, pin: data.pin });
+      setAuth({ email }, response.data.data.token);
+      navigate('/dashboard');
+    } catch (requestError) {
+      console.error(requestError);
+      setError(getApiErrorMessage(requestError, 'Unable to unlock your vault.'));
+    }
   };
 
   return (
@@ -37,6 +46,7 @@ export const Login = () => {
         <div className="p-6 sm:p-12 lg:p-14">
           <div className="mb-10 lg:hidden"><img src="/secure-save-logo.png" alt="Secure Save" className="mb-5 h-16 w-16 rounded-2xl object-cover" /><p className="eyebrow">Secure Save</p></div>
           <p className="eyebrow">Welcome back</p><h2 className="mt-2 font-['Space_Grotesk'] text-3xl font-bold">Unlock your vault</h2><p className="mt-2 text-sm text-[#9293b4]">Your private space is waiting for you.</p>
+          {error && <p role="alert" className="mt-5 rounded-2xl border border-[#ff829a]/25 bg-[#ff829a]/10 p-3 text-sm text-[#ffb2c0]">{error}</p>}
           <form onSubmit={handleSubmit(onSubmit)} className="mt-9 space-y-5">
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.03] p-3"><img src="/secure-save-logo.png" alt="" className="h-10 w-10 rounded-xl object-cover" /><div className="min-w-0"><p className="text-[11px] text-[#777898]">Unlocking vault for</p><p className="truncate text-sm font-semibold text-white">{email || 'No email saved yet'}</p></div></div>
             <label className="block"><span className="mb-2 block text-xs font-semibold text-[#aaa8c8]">Vault PIN</span><span className="relative block"><input {...register('pin')} type={showPin ? 'text' : 'password'} inputMode="numeric" placeholder="••••••" maxLength={6} className="input-premium pr-12 tracking-[.4em]" /><button type="button" onClick={() => setShowPin(!showPin)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9293b4]">{showPin ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></span>{errors.pin && <span className="mt-1 block text-xs text-[#ff829a]">{errors.pin.message}</span>}</label>
