@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuthStore } from '../../../../store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { FolderAdd, Trash2, Pencil, Eye, EyeOff, Image, Video, Audio, File, Folder } from 'lucide-react';
 import { AddTextNote } from '../add-text-note/AddTextNote';

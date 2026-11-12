@@ -1,11 +1,8 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AddCard } from '../add-cards/AddCard';
-import { useAuthStore } from '../../../../store/authStore';
-import { AddBank } from '../add-bank/AddBank';
+import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { CreditCard } from 'lucide-react';
 
 interface SavedCard {
   id: string;
@@ -135,7 +132,6 @@ export const CardsListing = () => {
         )}
       </main>
 
-      <AddBank />
     </div>
   );
 };
