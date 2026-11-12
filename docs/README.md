@@ -104,7 +104,24 @@ OTP_RESEND_COOLDOWN=60
 VITE_API_URL=http://localhost:3000/api
 ```
 
-### 4. Start Development Servers
+### 4. Deploying the API on Render
+
+The Render service must be allowed to connect to the MongoDB Atlas cluster:
+
+1. In MongoDB Atlas, open **Security → Network Access**.
+2. Add the Render service's outbound IP address range. If the service does not
+   have a fixed outbound IP, use Atlas's `0.0.0.0/0` entry only when you
+   understand the security implications; a fixed outbound IP is preferable.
+3. In Render, set the `MONGODB_URI` environment variable to the Atlas
+   connection string, including the database name and URL-encoded credentials.
+4. Confirm the MongoDB database user has access to that database.
+
+The API intentionally exits when the production database cannot be reached,
+instead of starting with a local MongoDB fallback. A
+`MongooseServerSelectionError` mentioning an IP whitelist means the Atlas
+Network Access rule is missing or does not include Render.
+
+### 5. Start Development Servers
 
 ```bash
 # API server (from apps/api directory)
@@ -114,7 +131,7 @@ npm run dev
 npm run dev
 ```
 
-### 5. Android APK Generation
+### 6. Android APK Generation
 
 ```bash
 # Sync Capacitor with Android

@@ -3,15 +3,26 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/secure-save';
+const MONGODB_URI = process.env.MONGODB_URI || (
+  process.env.NODE_ENV === 'production'
+    ? ''
+    : 'mongodb://localhost:27017/secure-save'
+);
 
 export const connectDatabase = async (): Promise<void> => {
+  if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI must be configured in production');
+  }
+
   try {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB Atlas');
   } catch (error) {
-    console.error('MongoDB Atlas connection error:', error);
-    process.exit(1);
+    console.error(
+      'MongoDB Atlas connection error. Verify MONGODB_URI and allow the Render service in Atlas Network Access:',
+      error
+    );
+    throw error;
   }
 };
 
