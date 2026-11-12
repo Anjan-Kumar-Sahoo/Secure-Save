@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
-import { body } from 'express-validator';
+import { body, validationResult } from 'express-validator';
 import { User } from '../models/user-model';
 import { otpService } from '../services/otp-service';
-import { createError } from '../../../utils/error-handler';
+import { createError, validationErrorHandler } from '../../../utils/error-handler';
 
 const router = Router();
 
@@ -17,7 +17,12 @@ router.post('/', [
   })
 ], async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(validationErrorHandler(errors.array()));
+    }
+
+    const email = String(req.body.email).trim().toLowerCase();
     await otpService.sendOtp(email);
     res.json({
       success: true,

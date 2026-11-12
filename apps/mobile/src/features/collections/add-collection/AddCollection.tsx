@@ -1,9 +1,8 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../../../store/authStore';
+import { useAuthStore } from '../../../store/authStore';
 import { z } from 'zod';
-import { useRouter } from 'react-router-dom';
 import { Plus, Check } from 'lucide-react';
 
 const collectionSchema = z.object({
@@ -16,8 +15,6 @@ type CollectionForm = z.infer<typeof collectionSchema>;
 export const AddCollection = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const router = useRouter();
-
   const {
     register,
     handleSubmit,

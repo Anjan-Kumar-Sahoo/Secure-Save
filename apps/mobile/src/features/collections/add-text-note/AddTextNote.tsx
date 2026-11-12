@@ -1,9 +1,9 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../../../store/authStore';
+import { useAuthStore } from '../../../store/authStore';
 import { z } from 'zod';
-import { useRouter } from 'react-router-dom';
+import { Check } from 'lucide-react';
 
 const textNoteSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title must be under 100 characters'),
@@ -15,8 +15,6 @@ type TextNoteForm = z.infer<typeof textNoteSchema>;
 export const AddTextNote = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const router = useRouter();
-
   const {
     register,
     handleSubmit,

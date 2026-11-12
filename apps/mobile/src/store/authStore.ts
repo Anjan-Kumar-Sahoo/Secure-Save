@@ -5,7 +5,9 @@ interface AuthState {
   isAuthenticated: boolean;
   user: any | null;
   token: string | null;
+  rememberedEmail: string | null;
   setAuth: (user: any, token: string) => void;
+  rememberEmail: (email: string) => void;
   logout: () => void;
 }
 
@@ -15,7 +17,14 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       user: null,
       token: null,
-      setAuth: (user, token) => set({ isAuthenticated: true, user, token }),
+      rememberedEmail: null,
+      setAuth: (user, token) => set({
+        isAuthenticated: true,
+        user,
+        token,
+        rememberedEmail: typeof user?.email === 'string' ? user.email.trim().toLowerCase() : null,
+      }),
+      rememberEmail: (email) => set({ rememberedEmail: email.trim().toLowerCase() }),
       logout: () => set({ isAuthenticated: false, user: null, token: null }),
     }),
     {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../../../store/authStore';
+import { useAuthStore } from '../../../store/authStore';
 
 export const AddAudio = () => {
   const navigate = useNavigate();
@@ -80,7 +80,7 @@ export const AddAudio = () => {
               </svg>
               Record Voice Note
             </button>
-          </div> : (
+          </div>) : (
           <div className="space-y-4">
             <button onClick={handleStopRecording} className="text-red-500">
               Stop Recording

@@ -25,3 +25,5 @@ services:
         sync: false
       - key: SMTP_FROM_NAME
         value: Secure Save
+      - key: CORS_ORIGIN
+        sync: false

@@ -1,35 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #0B0D12;
-  --surface-primary: #141821;
-  --surface-secondary: #1B2230;
-  --border: #293244;
-  --text-primary: #F5F7FA;
-  --text-secondary: #929BAA;
-  --accent: #8B7CFF;
-  --success: #31C48D;
-  --warning: #F5B942;
-  --danger: #EF6262;
+  --ink: #070817;
+  --panel: #111329;
+  --panel-soft: #171a39;
+  --line: rgba(175, 166, 255, 0.16);
+  --muted: #9293b4;
+  --white: #f8f8ff;
+  --violet: #9a7cff;
+  --pink: #e85cf4;
+  --green: #2ee6ad;
 }
+
+* { box-sizing: border-box; }
 
 body {
-  @apply bg-[#0B0D12] text-[#F5F7FA] antialiased;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  @apply antialiased;
+  margin: 0;
+  color: var(--white);
+  background:
+    radial-gradient(circle at 85% 0%, rgba(119, 89, 255, 0.18), transparent 35%),
+    radial-gradient(circle at 0% 40%, rgba(37, 88, 174, 0.12), transparent 30%),
+    var(--ink);
+  font-family: 'DM Sans', sans-serif;
 }
 
+button, input { font: inherit; }
+
 @layer components {
+  .app-shell {
+    @apply min-h-screen;
+    background: linear-gradient(160deg, rgba(20, 22, 52, .78), transparent 45%);
+  }
+
+  .page-wrap { @apply mx-auto w-full max-w-5xl px-5 pb-28 pt-5 sm:px-8; }
+
+  .glass {
+    background: linear-gradient(145deg, rgba(33, 35, 75, .88), rgba(13, 15, 35, .9));
+    border: 1px solid var(--line);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .28), inset 0 1px rgba(255,255,255,.05);
+    @apply rounded-[28px];
+  }
+
   .card-premium {
-    @apply bg-[#141821] border border-[#293244] rounded-2xl shadow-lg;
+    background: linear-gradient(145deg, rgba(27, 29, 65, .92), rgba(14, 16, 37, .96));
+    border: 1px solid var(--line);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .2);
+    @apply rounded-3xl;
   }
 
   .btn-primary {
-    @apply bg-[#8B7CFF] text-white font-semibold py-3 px-6 rounded-xl hover:bg-[#7A6AEF] transition-colors active:scale-95;
+    background: linear-gradient(100deg, #8971ff, #b27bff);
+    box-shadow: 0 12px 28px rgba(137, 113, 255, .26);
+    @apply rounded-2xl px-5 py-3 font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-95;
   }
 
   .input-premium {
-    @apply bg-[#1B2230] border border-[#293244] rounded-xl px-4 py-3 text-[#F5F7FA] focus:outline-none focus:border-[#8B7CFF] transition-colors;
+    background: rgba(8, 10, 28, .62);
+    border: 1px solid var(--line);
+    @apply w-full rounded-2xl px-4 py-3.5 text-[#F8F8FF] outline-none transition focus:border-[#9A7CFF] focus:ring-4 focus:ring-[#9A7CFF]/10;
   }
+
+  .eyebrow { @apply text-[11px] font-bold uppercase tracking-[.2em] text-[#9293B4]; }
 }

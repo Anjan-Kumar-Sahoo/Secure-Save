@@ -1,14 +1,13 @@
 import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuthStore } from '../../../../store/authStore';
+import { useAuthStore } from '../../../store/authStore';
 import { useNavigate } from 'react-router-dom';
-import { FolderAdd, Trash2, Pencil, Eye, EyeOff, Image, Video, Audio, File, Folder } from 'lucide-react';
+import { FolderPlus, Trash2, Pencil, Eye, EyeOff, Image, Video, Mic, File, Folder } from 'lucide-react';
 import { AddTextNote } from '../add-text-note/AddTextNote';
 import { AddImage } from '../add-image/AddImage';
 import { AddVideo } from '../add-video/AddVideo';
 import { AddAudio } from '../add-audio/AddAudio';
 import { AddGeneralFile } from '../add-general-file/AddGeneralFile';
-import { deleteCollection } from '../../utils/collection-utils';
 
 interface CollectionItem {
   id: string;
@@ -18,20 +17,20 @@ interface CollectionItem {
 
 export const CollectionDetail = () => {
   const navigate = useNavigate();
-  const { user, deleteAuth } = useAuthStore();
+  const { user } = useAuthStore();
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['collection-items', user?.id],
     queryFn: async () => {
       // Mock collection items
-      return [];
+      return [] as CollectionItem[];
     },
     enabled: !!user,
   });
 
   const handleDeleteCollection = async () => {
     if (confirm('Are you sure you want to delete this collection?')) {
-      await deleteCollection(user?.id);
+      console.log('Deleting collection for user:', user?.id);
       navigate('/collections');
     }
   };
@@ -99,7 +98,7 @@ export const CollectionDetail = () => {
                   onClick={() => navigate('/collections/add-text')}
                   className="w-full btn-primary py-3 rounded-xl hover:bg-[#7A6AEF] transition-colors"
                 >
-                  <FolderAdd className="w-4 h-4 me-2" />
+                  <FolderPlus className="w-4 h-4 me-2" />
                   Text Note
                 </button>
                 <button
@@ -120,7 +119,7 @@ export const CollectionDetail = () => {
                   onClick={() => navigate('/collections/add-audio')}
                   className="w-full btn-primary py-3 rounded-xl hover:bg-[#7A6AEF] transition-colors"
                 >
-                  <Audio className="w-4 h-4 me-2" />
+                  <Mic className="w-4 h-4 me-2" />
                   Audio
                 </button>
                 <button

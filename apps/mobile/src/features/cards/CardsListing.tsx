@@ -1,8 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AddCard } from '../add-cards/AddCard';
-import { useAuthStore } from '../../../../store/authStore';
-import { AddBank } from '../add-bank/AddBank';
+import { useAuthStore } from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { CreditCard } from 'lucide-react';
@@ -31,7 +29,7 @@ export const CardsListing = () => {
     queryKey: ['cards', user?.id],
     queryFn: async () => {
       // Mock cards list - in real app: await api.getCards(user.id)
-      return [];
+      return [] as SavedCard[];
     },
     enabled: !!user,
   });
@@ -40,7 +38,7 @@ export const CardsListing = () => {
     queryKey: ['banks', user?.id],
     queryFn: async () => {
       // Mock banks list - in real app: await api.getBanks(user.id)
-      return [];
+      return [] as SavedBank[];
     },
     enabled: !!user,
   });
@@ -135,7 +133,6 @@ export const CardsListing = () => {
         )}
       </main>
 
-      <AddBank />
     </div>
   );
 };

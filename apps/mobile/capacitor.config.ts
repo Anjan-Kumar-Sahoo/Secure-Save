@@ -1,10 +1,9 @@
-import { CapConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from '@capacitor/cli';
 
-const config: CapConfig = {
+const config: CapacitorConfig = {
   appId: 'com.securesave.app',
   appName: 'Secure Save',
   webDir: 'dist',
-  bundledWebAssets: false,
   plugins: {
     StatusBar: {
       style: 'LIGHT',

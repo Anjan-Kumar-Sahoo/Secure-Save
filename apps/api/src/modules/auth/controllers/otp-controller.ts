@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
-import { body } from 'express-validator';
+import { body, validationResult } from 'express-validator';
 import { otpService } from '../services/otp-service';
 import { validationErrorHandler } from '../../../utils/error-handler';
 import { User } from '../models/user-model';
@@ -11,7 +11,12 @@ router.post('/send', [
   body('email').isEmail().withMessage('Invalid email')
 ], async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(validationErrorHandler(errors.array()));
+    }
+
+    const email = String(req.body.email).trim().toLowerCase();
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -27,7 +32,7 @@ router.post('/send', [
       message: 'OTP sent to email'
     });
   } catch (error) {
-    next(validationErrorHandler(error as any));
+    next(error);
   }
 });
 
@@ -37,7 +42,13 @@ router.post('/verify', [
   body('otp').isNumeric().withMessage('OTP must be numeric')
 ], async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, otp } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(validationErrorHandler(errors.array()));
+    }
+
+    const email = String(req.body.email).trim().toLowerCase();
+    const { otp } = req.body;
 
     await otpService.verifyOtp(email, otp, 'registration');
 
@@ -59,7 +70,7 @@ router.post('/verify', [
       message: 'OTP verified successfully'
     });
   } catch (error) {
-    next(validationErrorHandler(error as any));
+    next(error);
   }
 });
 

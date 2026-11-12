@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../../../store/authStore';
+import { useAuthStore } from '../../../store/authStore';
 
 export const AddImage = () => {
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ export const AddImage = () => {
           className="w-full btn-primary py-3 rounded-xl mt-6"
         >
           <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLineCap="round" />
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
           Cancel
         </button>
