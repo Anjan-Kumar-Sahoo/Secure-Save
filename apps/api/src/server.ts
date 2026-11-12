@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import bodyParser from 'express';
 import { connectDatabase } from './config/database';
+import apiApp from './app';
 
 const app = express();
 
@@ -33,8 +34,10 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
 });
+
+app.use(apiApp);
 
 const PORT = process.env.PORT || 3000;
 

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import app from '../server';
+import app from '../src/server';
 
 describe('Authentication API', () => {
   let server: any;
