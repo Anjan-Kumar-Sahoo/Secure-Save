@@ -60,6 +60,7 @@ router.post('/verify', [
     });
   } catch (error) {
     next(validationErrorHandler(error as any));
-  }\n});
+  }
+});
 
 export { router as otpRoutes };
