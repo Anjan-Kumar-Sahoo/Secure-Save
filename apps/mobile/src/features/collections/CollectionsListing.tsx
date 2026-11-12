@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useAuthStore } from '../../../../store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { Folder, Plus, Eye, EyeOff } from 'lucide-react';
 import { AddCollection } from '../add-collection/AddCollection';

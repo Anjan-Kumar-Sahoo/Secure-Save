@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AddPassword } from '../add-password/AddPassword';
-import { useAuthStore } from '../../../../store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { Key, Eye, EyeOff, Copy, Clipboard } from 'lucide-react';
 
