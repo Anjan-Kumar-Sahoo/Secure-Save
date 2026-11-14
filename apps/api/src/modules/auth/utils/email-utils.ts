@@ -3,15 +3,24 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: parseInt(process.env.SMTP_PORT || '587') === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD
-  }
-});
+const getTransporter = () => {
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const isSecure = port === 465;
+
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port,
+    secure: isSecure,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD
+    },
+    // Prevent SSL handshake drops on cloud platforms (e.g. Render / Linux)
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+};
 
 export const sendEmail = async (to: string, options: {
   subject: string;
@@ -19,20 +28,32 @@ export const sendEmail = async (to: string, options: {
   data: Record<string, any>;
 }): Promise<void> => {
   const html = await generateEmailTemplate(options.template, options.data);
+  const transporter = getTransporter();
+
+  const fromName = process.env.SMTP_FROM_NAME || 'Secure Save';
+  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
 
   const mailOptions = {
-    from: `${process.env.SMTP_FROM_NAME} <${process.env.SMTP_FROM_EMAIL}>`,
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: options.subject,
     html
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${to}`);
-  } catch (error) {
-    console.error('Email sending failed:', error);
-    throw new Error('Failed to send email');
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Email sent successfully to ${to}, messageId: ${info.messageId}`);
+  } catch (error: any) {
+    console.error('Email sending failed with detail:', {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER ? 'SET' : 'MISSING'
+    });
+    throw new Error(`Failed to send email: ${error.message || 'SMTP error'}`);
   }
 };
 
