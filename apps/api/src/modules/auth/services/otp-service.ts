@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { Otp } from '../models/otp-model';
 import { sendEmail } from '../utils/email-utils';
 import { AppError } from '../../../utils/error-handler';
@@ -69,7 +70,7 @@ class OtpService {
   }
 
   private async generateOtp(): Promise<{ otp: string; otpHash: string }> {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const otpHash = await bcrypt.hash(otp, SALT_ROUNDS);
     return { otp, otpHash };
   }

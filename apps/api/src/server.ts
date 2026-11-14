@@ -28,7 +28,14 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || origin === 'capacitor://localhost' || origin === 'http://localhost') {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      origin === 'capacitor://localhost' ||
+      origin === 'http://localhost' ||
+      origin === 'https://localhost' ||
+      origin === 'ionic://localhost'
+    ) {
       return callback(null, true);
     }
     return callback(new Error('Origin is not allowed by CORS'));

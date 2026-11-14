@@ -114,6 +114,31 @@ describe('registration lifecycle', () => {
     expect(loginResponse.body.data.token).toEqual(expect.any(String));
   });
 
+  it('reports account status without authenticating the account', async () => {
+    const email = 'lookup@example.com';
+
+    const missingResponse = await request(app)
+      .post('/api/auth/session/lookup')
+      .send({ email });
+    expect(missingResponse.status).toBe(200);
+    expect(missingResponse.body.data.status).toBe('not_found');
+
+    await request(app).post('/api/auth/register').send({ email });
+    const pendingResponse = await request(app)
+      .post('/api/auth/session/lookup')
+      .send({ email });
+    expect(pendingResponse.body.data.status).toBe('pending');
+
+    await request(app).post('/api/auth/otp/verify').send({ email, otp: '123456' });
+    await request(app).post('/api/auth/pin/complete-registration')
+      .send({ email, pin: '123456', confirmPin: '123456' });
+    const activeResponse = await request(app)
+      .post('/api/auth/session/lookup')
+      .send({ email });
+    expect(activeResponse.body.data.status).toBe('active');
+    expect(activeResponse.body.data).not.toHaveProperty('email');
+  });
+
   it('rejects duplicate registration and enforces resend cooldown', async () => {
     const email = 'duplicate@example.com';
     await request(app).post('/api/auth/register').send({ email });

@@ -3,12 +3,38 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
-import { body } from 'express-validator';
+import { body, validationResult } from 'express-validator';
 import { User } from '../models/user-model';
 
 const router = Router();
 
 dotenv.config();
+
+router.post('/lookup', [
+  body('email').isEmail().withMessage('Invalid email')
+], async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Invalid email' });
+    }
+
+    const email = String(req.body.email).trim().toLowerCase();
+    const user = await User.findOne({ email });
+    const status = !user
+      ? 'not_found'
+      : user.status === 'active' && user.emailVerified
+        ? 'active'
+        : 'pending';
+
+    return res.json({
+      success: true,
+      data: { status }
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
 
 router.post('/login', [
   body('email').isEmail().withMessage('Invalid email'),

@@ -1,79 +1,338 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { ArrowRight, Check, KeyRound, Mail } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { ArrowRight, Check, KeyRound, Mail, Shield, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 
-export const Register = () => {
+const registerSchema = z.object({
+  email: z.string().trim().min(1, 'Email is required').email('Enter a valid email address'),
+  otp: z.string().optional(),
+  pin: z.string().optional(),
+  confirmPin: z.string().optional(),
+});
+
+type RegisterFormData = z.infer<typeof registerSchema>;
+
+export const Register: React.FC = () => {
   const navigate = useNavigate();
-  const [step, setStep] = React.useState<'email' | 'otp' | 'pin'>('email');
-  const [email, setEmail] = React.useState('');
+  const [searchParams] = useSearchParams();
+  const initialEmail = (searchParams.get('email') || '').trim().toLowerCase();
+  const initialStep = searchParams.get('step') === 'otp' && initialEmail ? 'otp' : 'email';
+
+  const [step, setStep] = React.useState<'email' | 'otp' | 'pin'>(initialStep);
+  const [email, setEmail] = React.useState(initialEmail);
   const [error, setError] = React.useState('');
   const [isResending, setIsResending] = React.useState(false);
-  const rememberEmail = useAuthStore((state) => state.rememberEmail);
-  const { register, handleSubmit, formState: { isSubmitting }, reset } = useForm<{ email: string; otp: string; pin: string; confirmPin: string }>();
+  const [resendCooldown, setResendCooldown] = React.useState(0);
+  const [showPin, setShowPin] = React.useState(false);
 
-  const onSubmit = async (data: { email: string; otp: string; pin: string; confirmPin: string }) => {
+  const rememberEmail = useAuthStore((state) => state.rememberEmail);
+
+  const { register, handleSubmit, formState: { isSubmitting }, watch, reset, setError: setFieldError } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { email: initialEmail, otp: '', pin: '', confirmPin: '' },
+  });
+
+  // Handle countdown timer for resend
+  React.useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  const onSubmit = async (data: RegisterFormData) => {
     setError('');
+
     try {
       if (step === 'email') {
         const normalizedEmail = data.email.trim().toLowerCase();
         await api.post('/auth/register', { email: normalizedEmail });
         setEmail(normalizedEmail);
         rememberEmail(normalizedEmail);
-        reset({ email: normalizedEmail, otp: '', pin: '', confirmPin: '' });
         setStep('otp');
+        setResendCooldown(60);
         return;
       }
 
       if (step === 'otp') {
-        await api.post('/auth/otp/verify', { email, otp: data.otp });
+        const otpValue = (data.otp || '').trim();
+        if (!/^\d{6}$/.test(otpValue)) {
+          setError('Verification code must be exactly 6 digits.');
+          return;
+        }
+
+        await api.post('/auth/otp/verify', { email, otp: otpValue });
         setStep('pin');
+        return;
+      }
+
+      // Step: PIN setup
+      const pin = data.pin || '';
+      const confirmPin = data.confirmPin || '';
+
+      if (!/^\d{6}$/.test(pin)) {
+        setError('PIN must be exactly 6 numeric digits.');
+        return;
+      }
+
+      if (pin !== confirmPin) {
+        setError('PINs do not match.');
         return;
       }
 
       await api.post('/auth/pin/complete-registration', {
         email,
-        pin: data.pin,
-        confirmPin: data.confirmPin,
+        pin,
+        confirmPin,
       });
+
+      // Remember email so returning to login lands on PIN state
+      rememberEmail(email);
       navigate('/login');
     } catch (requestError) {
-      console.error(requestError);
-      setError(getApiErrorMessage(requestError, 'Registration failed.'));
+      setError(getApiErrorMessage(requestError, 'Registration process could not be completed.'));
     }
   };
 
   const resendOtp = async () => {
+    if (resendCooldown > 0 || isResending) return;
     setError('');
     setIsResending(true);
     try {
       await api.post('/auth/otp/send', { email });
+      setResendCooldown(60);
     } catch (requestError) {
-      console.error(requestError);
-      setError(getApiErrorMessage(requestError, 'Unable to resend the verification code.'));
+      setError(getApiErrorMessage(requestError, 'Unable to resend verification code. Please wait.'));
     } finally {
       setIsResending(false);
     }
   };
 
-  const stepCopy = {
-    email: ['Get started', 'Your safe place', 'starts here.'],
-    otp: ['Verify your email', 'One last check', 'before your vault.'],
-    pin: ['Set your PIN', 'Make it yours', 'keep it private.'],
-  }[step];
+  const otpValue = watch('otp') || '';
+  const pinValue = watch('pin') || '';
+  const confirmPinValue = watch('confirmPin') || '';
 
-  return <div className="app-shell flex min-h-screen items-center justify-center p-5"><div className="glass w-full max-w-lg p-7 sm:p-12">
-    <div className="mb-10 flex items-center gap-3"><img src="/secure-save-logo.png" alt="Secure Save" className="h-14 w-14 rounded-2xl object-cover" /><div><p className="eyebrow">Secure Save</p><p className="text-sm font-bold">Build your private vault</p></div></div>
-    <p className="eyebrow">{stepCopy[0]}</p><h1 className="mt-2 font-['Space_Grotesk'] text-3xl font-bold">{stepCopy[1]}<br />{stepCopy[2]}</h1><p className="mt-3 text-sm leading-6 text-[#9293b4]">{step === 'email' ? 'Create your account and keep everything important protected in one beautifully simple space.' : step === 'otp' ? `We sent a six-digit code to ${email}.` : 'Choose a PIN you can remember. It will be the only way into your vault.'}</p>
-    {error && <p role="alert" className="mt-5 rounded-2xl border border-[#ff829a]/25 bg-[#ff829a]/10 p-3 text-sm text-[#ffb2c0]">{error}</p>}
-    <form onSubmit={handleSubmit(onSubmit)} className="mt-9 space-y-5">
-      {step === 'email' && <label className="block"><span className="mb-2 block text-xs font-semibold text-[#aaa8c8]">Email address</span><span className="relative block"><Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#777898]" /><input {...register('email', { required: 'Email is required' })} type="email" placeholder="you@example.com" className="input-premium pl-11" /></span></label>}
-      {step === 'otp' && <><label className="block"><span className="mb-2 block text-xs font-semibold text-[#aaa8c8]">Verification code</span><input {...register('otp', { required: true, pattern: /^\d{6}$/ })} inputMode="numeric" maxLength={6} placeholder="000000" className="input-premium text-center text-xl tracking-[.5em]" /></label><button type="button" onClick={resendOtp} disabled={isResending} className="text-left text-xs font-semibold text-[#a88bff] disabled:opacity-50">{isResending ? 'Resending...' : 'Resend code'}</button></>}
-      {step === 'pin' && <><label className="block"><span className="mb-2 block text-xs font-semibold text-[#aaa8c8]">Six-digit vault PIN</span><span className="relative block"><KeyRound className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#777898]" /><input {...register('pin', { required: true, pattern: /^\d{6}$/ })} inputMode="numeric" maxLength={6} type="password" placeholder="••••••" className="input-premium pl-11 tracking-[.4em]" /></span></label><label className="block"><span className="mb-2 block text-xs font-semibold text-[#aaa8c8]">Confirm PIN</span><input {...register('confirmPin', { required: true, pattern: /^\d{6}$/ })} inputMode="numeric" maxLength={6} type="password" placeholder="••••••" className="input-premium tracking-[.4em]" /></label></>}
-      <button disabled={isSubmitting} className="btn-primary flex w-full items-center justify-center gap-2">{isSubmitting ? 'Please wait...' : step === 'email' ? 'Send verification code' : step === 'otp' ? 'Verify email' : 'Create my vault'}<ArrowRight className="h-4 w-4" /></button>
-    </form>
-    <div className="mt-8 space-y-3 rounded-2xl bg-white/[.03] p-4 text-xs text-[#9293b4]"><p className="flex items-center gap-2"><Check className="h-4 w-4 text-[#2ee6ad]" /> Six-digit email verification</p><p className="flex items-center gap-2"><Check className="h-4 w-4 text-[#2ee6ad]" /> Encrypted personal vault</p></div><p className="mt-8 text-center text-sm text-[#9293b4]">Already have a vault? <Link to="/login" className="font-bold text-[#a88bff]">Unlock it</Link></p>
-  </div></div>;
+  return (
+    <div className="auth-shell app-shell">
+      <main className="w-full max-w-[min(100%,30rem)] mx-auto">
+        <div className="glass-surface p-[clamp(1.25rem,4vw,2.5rem)] w-full">
+          {/* Header Branding */}
+          <header className="flex items-center gap-3 mb-[clamp(1.5rem,3.5vw,2rem)]">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600/30 to-purple-800/30 border border-violet-500/25 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/20 overflow-hidden">
+              <img
+                src="/secure-save-logo.png"
+                alt="Secure Save Shield"
+                className="w-10 h-10 object-contain"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="eyebrow">Personal Vault</p>
+              <h1 className="font-display font-bold text-lg tracking-tight text-vault-text truncate">
+                Secure Save
+              </h1>
+            </div>
+          </header>
+
+          {/* Step Indicator */}
+          <div className="flex items-center justify-between gap-2 mb-6 text-xs">
+            <div className={`flex items-center gap-1.5 font-semibold ${step === 'email' ? 'text-vault-accentLight' : 'text-vault-success'}`}>
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 'email' ? 'bg-vault-accent text-white' : 'bg-vault-success/20 text-vault-success'}`}>
+                {step !== 'email' ? <Check className="w-3 h-3" /> : '1'}
+              </span>
+              <span>Email</span>
+            </div>
+            <div className="h-[1px] flex-1 bg-vault-borderSubtle" />
+            <div className={`flex items-center gap-1.5 font-semibold ${step === 'otp' ? 'text-vault-accentLight' : step === 'pin' ? 'text-vault-success' : 'text-vault-subtle'}`}>
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 'otp' ? 'bg-vault-accent text-white' : step === 'pin' ? 'bg-vault-success/20 text-vault-success' : 'bg-vault-surface text-vault-subtle'}`}>
+                {step === 'pin' ? <Check className="w-3 h-3" /> : '2'}
+              </span>
+              <span>Verify</span>
+            </div>
+            <div className="h-[1px] flex-1 bg-vault-borderSubtle" />
+            <div className={`flex items-center gap-1.5 font-semibold ${step === 'pin' ? 'text-vault-accentLight' : 'text-vault-subtle'}`}>
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 'pin' ? 'bg-vault-accent text-white' : 'bg-vault-surface text-vault-subtle'}`}>
+                3
+              </span>
+              <span>PIN</span>
+            </div>
+          </div>
+
+          {/* Title Area */}
+          <div>
+            <h2 className="title-section text-vault-text">
+              {step === 'email' && 'Create Your Vault'}
+              {step === 'otp' && 'Verify Your Email'}
+              {step === 'pin' && 'Set Your Login PIN'}
+            </h2>
+            <p className="text-xs sm:text-sm text-vault-muted mt-1.5 leading-relaxed">
+              {step === 'email' && 'Begin your secure digital vault in seconds.'}
+              {step === 'otp' && `Enter the 6-digit code sent to ${email}.`}
+              {step === 'pin' && 'Choose a 6-digit PIN to securely unlock your vault.'}
+            </p>
+          </div>
+
+          {/* Error Banner */}
+          {error && (
+            <div
+              role="alert"
+              className="mt-4 p-3.5 rounded-xl border border-vault-danger/30 bg-vault-danger/10 text-vault-danger flex items-start gap-2.5 text-xs sm:text-sm animate-fadeIn"
+            >
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <p className="flex-1 leading-relaxed">{error}</p>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-5 space-y-4">
+            {step === 'email' && (
+              <div>
+                <label htmlFor="reg-email" className="block text-xs font-semibold text-vault-muted mb-1.5">
+                  Email address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-vault-subtle pointer-events-none" />
+                  <input
+                    id="reg-email"
+                    {...register('email')}
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    placeholder="name@example.com"
+                    disabled={isSubmitting}
+                    className="input-vault pl-10"
+                  />
+                </div>
+              </div>
+            )}
+
+            {step === 'otp' && (
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="reg-otp" className="block text-xs font-semibold text-vault-muted mb-1.5">
+                    6-Digit Verification Code
+                  </label>
+                  <input
+                    id="reg-otp"
+                    {...register('otp')}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    placeholder="000000"
+                    disabled={isSubmitting}
+                    className="input-vault text-center font-mono text-xl tracking-[0.5em] py-3.5"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-vault-muted">Didn't receive code?</span>
+                  <button
+                    type="button"
+                    onClick={resendOtp}
+                    disabled={resendCooldown > 0 || isResending}
+                    className="font-semibold text-vault-accentLight hover:underline disabled:opacity-50 disabled:no-underline"
+                  >
+                    {isResending ? 'Sending...' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 'pin' && (
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="reg-pin" className="text-xs font-semibold text-vault-muted">
+                      6-Digit Vault PIN
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="text-xs text-vault-accentLight flex items-center gap-1 hover:underline"
+                    >
+                      {showPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      <span>{showPin ? 'Hide' : 'Show'}</span>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-vault-subtle pointer-events-none" />
+                    <input
+                      id="reg-pin"
+                      {...register('pin')}
+                      type={showPin ? 'text' : 'password'}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      placeholder="••••••"
+                      disabled={isSubmitting}
+                      className="input-vault pl-10 font-mono tracking-[0.4em] text-center"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="reg-confirm-pin" className="block text-xs font-semibold text-vault-muted mb-1.5">
+                    Confirm 6-Digit Vault PIN
+                  </label>
+                  <input
+                    id="reg-confirm-pin"
+                    {...register('confirmPin')}
+                    type={showPin ? 'text' : 'password'}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    placeholder="••••••"
+                    disabled={isSubmitting}
+                    className="input-vault font-mono tracking-[0.4em] text-center"
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={
+                isSubmitting ||
+                (step === 'otp' && otpValue.length !== 6) ||
+                (step === 'pin' && (pinValue.length !== 6 || confirmPinValue.length !== 6))
+              }
+              className="btn-primary w-full mt-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  {step === 'email' && 'Send Verification Code'}
+                  {step === 'otp' && 'Verify Code'}
+                  {step === 'pin' && 'Create My Vault'}
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer Navigation */}
+          <div className="mt-6 pt-4 border-t border-vault-borderSubtle text-center">
+            <p className="text-xs text-vault-muted">
+              Already have a vault?{' '}
+              <Link to="/login" className="font-bold text-vault-accentLight hover:underline">
+                Unlock It
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        <footer className="mt-6 text-center text-xs text-vault-subtle flex items-center justify-center gap-1.5">
+          <Shield className="w-3.5 h-3.5 text-vault-success" />
+          <span>Client-Side AES-256 GCM Protected</span>
+        </footer>
+      </main>
+    </div>
+  );
 };

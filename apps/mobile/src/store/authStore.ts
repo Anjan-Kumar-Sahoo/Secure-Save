@@ -1,13 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export interface UserProfile {
+  id?: string;
+  email: string;
+}
+
 interface AuthState {
   isAuthenticated: boolean;
-  user: any | null;
+  user: UserProfile | null;
   token: string | null;
   rememberedEmail: string | null;
-  setAuth: (user: any, token: string) => void;
+  setAuth: (user: UserProfile, token: string) => void;
   rememberEmail: (email: string) => void;
+  clearRememberedEmail: () => void;
   logout: () => void;
 }
 
@@ -22,13 +28,23 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: true,
         user,
         token,
-        rememberedEmail: typeof user?.email === 'string' ? user.email.trim().toLowerCase() : null,
+        rememberedEmail: user?.email ? user.email.trim().toLowerCase() : null,
       }),
       rememberEmail: (email) => set({ rememberedEmail: email.trim().toLowerCase() }),
-      logout: () => set({ isAuthenticated: false, user: null, token: null }),
+      clearRememberedEmail: () => set({ rememberedEmail: null }),
+      logout: () => set({
+        isAuthenticated: false,
+        user: null,
+        token: null,
+      }),
     }),
     {
       name: 'secure-save-auth',
+      // Only persist the convenience preference (rememberedEmail)
+      // Every fresh app launch requires entering Login PIN
+      partialize: (state) => ({
+        rememberedEmail: state.rememberedEmail,
+      }),
     }
   )
 );

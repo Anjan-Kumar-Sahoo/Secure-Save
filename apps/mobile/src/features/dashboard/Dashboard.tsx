@@ -1,91 +1,303 @@
 import React from 'react';
-import {
-  ArrowUpRight, Bell, ChevronRight, Clock3, CreditCard,
-  FolderLock, KeyRound, LayoutGrid, LockKeyhole, Plus, ShieldCheck,
-} from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import {
+  CreditCard,
+  KeyRound,
+  Landmark,
+  FolderLock,
+  LogOut,
+  Shield,
+  ArrowRight,
+  Plus,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
+import api from '../../services/api';
 
-const actions = [
-  { label: 'Cards', hint: '3 saved', icon: CreditCard, path: '/cards', tone: 'violet' },
-  { label: 'Passwords', hint: '12 saved', icon: KeyRound, path: '/passwords', tone: 'pink' },
-  { label: 'Collections', hint: 'Organize vault', icon: FolderLock, path: '/collections', tone: 'blue' },
-];
-
-const activity: Array<{
-  title: string;
-  detail: string;
-  time: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-}> = [
-  { title: 'Visa •••• 3254', detail: 'Card added', time: '2 min ago', icon: CreditCard, color: 'text-[#a88bff]' },
-  { title: 'Netflix account', detail: 'Password updated', time: 'Yesterday', icon: KeyRound, color: 'text-[#f07bfa]' },
-  { title: 'Travel documents', detail: 'Collection created', time: 'May 18', icon: FolderLock, color: 'text-[#6eaaff]' },
-];
-
-export const Dashboard = () => {
+export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+
+  // Real backend queries for actual vault counts
+  const { data: cards = [], isLoading: isLoadingCards, refetch: refetchCards } = useQuery({
+    queryKey: ['vault-cards'],
+    queryFn: async () => {
+      const res = await api.get('/cards');
+      return res.data?.data?.cards || [];
+    },
+  });
+
+  const { data: passwords = [], isLoading: isLoadingPasswords, refetch: refetchPasswords } = useQuery({
+    queryKey: ['vault-passwords'],
+    queryFn: async () => {
+      const res = await api.get('/passwords');
+      return res.data?.data?.passwords || [];
+    },
+  });
+
+  const { data: banks = [], isLoading: isLoadingBanks, refetch: refetchBanks } = useQuery({
+    queryKey: ['vault-banks'],
+    queryFn: async () => {
+      const res = await api.get('/banks');
+      return res.data?.data?.banks || [];
+    },
+  });
+
+  const { data: collections = [], isLoading: isLoadingCollections, refetch: refetchCollections } = useQuery({
+    queryKey: ['vault-collections'],
+    queryFn: async () => {
+      const res = await api.get('/collections');
+      return res.data?.data?.collections || [];
+    },
+  });
+
+  const isRefreshing = isLoadingCards || isLoadingPasswords || isLoadingBanks || isLoadingCollections;
+
+  const handleRefresh = () => {
+    refetchCards();
+    refetchPasswords();
+    refetchBanks();
+    refetchCollections();
+  };
+
+  const totalVaultItems = cards.length + passwords.length + banks.length + collections.length;
+
+  const modules = [
+    {
+      id: 'cards',
+      title: 'Cards',
+      description: 'Credit, debit, and identity cards',
+      count: cards.length,
+      isLoading: isLoadingCards,
+      unit: cards.length === 1 ? 'card' : 'cards',
+      icon: CreditCard,
+      path: '/cards',
+      color: 'from-violet-600/20 to-purple-800/20',
+      iconColor: 'text-violet-400',
+      borderColor: 'border-violet-500/20',
+      actionLabel: 'Manage Cards',
+    },
+    {
+      id: 'passwords',
+      title: 'Passwords',
+      description: 'Logins, credentials & secure notes',
+      count: passwords.length,
+      isLoading: isLoadingPasswords,
+      unit: passwords.length === 1 ? 'credential' : 'credentials',
+      icon: KeyRound,
+      path: '/passwords',
+      color: 'from-fuchsia-600/20 to-pink-800/20',
+      iconColor: 'text-fuchsia-400',
+      borderColor: 'border-fuchsia-500/20',
+      actionLabel: 'Manage Passwords',
+    },
+    {
+      id: 'banks',
+      title: 'Bank Details',
+      description: 'Account numbers, IFSC & linked cards',
+      count: banks.length,
+      isLoading: isLoadingBanks,
+      unit: banks.length === 1 ? 'account' : 'accounts',
+      icon: Landmark,
+      path: '/banks',
+      color: 'from-blue-600/20 to-indigo-800/20',
+      iconColor: 'text-blue-400',
+      borderColor: 'border-blue-500/20',
+      actionLabel: 'Manage Banks',
+    },
+    {
+      id: 'collections',
+      title: 'My Collections',
+      description: 'Encrypted notes, media & personal files',
+      count: collections.length,
+      isLoading: isLoadingCollections,
+      unit: collections.length === 1 ? 'collection' : 'collections',
+      icon: FolderLock,
+      path: '/collections',
+      color: 'from-emerald-600/20 to-teal-800/20',
+      iconColor: 'text-emerald-400',
+      borderColor: 'border-emerald-500/20',
+      actionLabel: 'Explore Spaces',
+    },
+  ];
 
   return (
     <div className="app-shell">
-      <main className="page-wrap">
-        <header className="mb-8 flex items-center justify-between">
+      {/* Top Navigation Bar */}
+      <nav className="sticky top-0 z-30 w-full border-b border-vault-borderSubtle bg-vault-bg/90 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-[clamp(1rem,3vw,2rem)] h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/secure-save-logo.png" alt="Secure Save" className="h-11 w-11 rounded-2xl object-cover shadow-lg shadow-violet-500/20" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600/30 to-purple-800/30 border border-violet-500/25 flex items-center justify-center shrink-0 shadow-md">
+              <img
+                src="/secure-save-logo.png"
+                alt="Secure Save"
+                className="w-8 h-8 object-contain"
+              />
+            </div>
             <div>
-              <p className="eyebrow">Secure Save</p>
-              <p className="text-sm font-semibold text-white">Your private vault</p>
+              <p className="eyebrow leading-none">Vault Active</p>
+              <h1 className="font-display font-bold text-base tracking-tight text-vault-text">
+                Secure Save
+              </h1>
             </div>
           </div>
-          <button aria-label="Notifications" className="glass grid h-11 w-11 place-items-center rounded-2xl text-[#b8b7d8]">
-            <Bell className="h-5 w-5" />
-          </button>
-        </header>
 
-        <section className="relative mb-7 overflow-hidden rounded-[30px] bg-gradient-to-br from-[#9d7cff] via-[#8066f4] to-[#d65de9] p-6 shadow-2xl shadow-violet-900/30">
-          <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full border-[30px] border-white/10" />
-          <div className="absolute -bottom-28 right-16 h-56 w-56 rounded-full border-[30px] border-white/10" />
-          <div className="relative">
-            <div className="mb-8 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white/75">Good evening, Alex</p>
-                <h1 className="mt-1 font-['Space_Grotesk'] text-3xl font-bold tracking-tight">Your vault is<br />locked & ready.</h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              aria-label="Refresh vault data"
+              className="p-2 rounded-xl text-vault-muted hover:text-vault-text hover:bg-vault-surface/60 transition-colors"
+              title="Refresh vault"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-vault-accentLight' : ''}`} />
+            </button>
+
+            <div className="h-4 w-[1px] bg-vault-borderSubtle mx-1" />
+
+            <button
+              onClick={logout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-vault-borderSubtle bg-vault-surface/40 hover:bg-vault-surface text-vault-muted hover:text-vault-text text-xs font-semibold transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Lock Vault</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Page Container */}
+      <main className="page-container flex-1">
+        {/* Vault Status Hero Banner */}
+        <section className="glass-surface p-[clamp(1.25rem,3.5vw,2.25rem)] mb-[clamp(1.25rem,2.5vw,2rem)] relative overflow-hidden">
+          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
+          <div className="absolute right-32 -bottom-20 w-48 h-48 rounded-full bg-fuchsia-600/10 blur-2xl pointer-events-none" />
+
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-vault-success/10 text-vault-success border border-vault-success/20">
+                  <Shield className="w-3 h-3" /> Encrypted & Unlocked
+                </span>
+                <span className="text-xs text-vault-muted truncate max-w-[200px]">
+                  {user?.email}
+                </span>
               </div>
-              <div className="rounded-2xl bg-black/15 p-3"><LockKeyhole className="h-6 w-6" /></div>
+              <h2 className="title-hero text-vault-text">
+                Your Vault Overview
+              </h2>
+              <p className="text-xs sm:text-sm text-vault-muted mt-1 max-w-lg leading-relaxed">
+                All records are client-side encrypted with AES-256-GCM. Only your authenticated session can decrypt them.
+              </p>
             </div>
-            <div className="flex items-end justify-between">
-              <div><p className="text-xs text-white/70">Items protected</p><p className="mt-1 text-2xl font-bold">24 <span className="text-sm font-medium text-white/70">items</span></p></div>
-              <button onClick={() => navigate('/collections')} className="flex items-center gap-1 rounded-xl bg-white px-3 py-2 text-xs font-bold text-[#7055dc]">Open vault <ArrowUpRight className="h-3.5 w-3.5" /></button>
+
+            <div className="flex items-center gap-4 bg-vault-bg/60 p-4 rounded-2xl border border-vault-borderSubtle shrink-0">
+              <div className="text-center px-3">
+                <p className="text-[11px] font-semibold text-vault-muted uppercase tracking-wider">Total Items</p>
+                <p className="font-display font-bold text-2xl sm:text-3xl text-vault-text mt-0.5">
+                  {totalVaultItems}
+                </p>
+              </div>
+              <div className="h-10 w-[1px] bg-vault-borderSubtle" />
+              <div className="text-center px-3">
+                <p className="text-[11px] font-semibold text-vault-muted uppercase tracking-wider">Active Modules</p>
+                <p className="font-display font-bold text-2xl sm:text-3xl text-vault-accentLight mt-0.5">
+                  4
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="mb-8">
-          <div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-bold">Quick access</h2><button className="text-xs font-semibold text-[#9a87ff]">Edit</button></div>
-          <div className="grid grid-cols-3 gap-3">
-            {actions.map(({ label, hint, icon: Icon, path, tone }) => (
-              <button key={label} onClick={() => navigate(path)} className="card-premium group p-3 text-left transition hover:-translate-y-1">
-                <div className={`mb-7 grid h-10 w-10 place-items-center rounded-2xl ${tone === 'pink' ? 'bg-[#e85cf4]/15 text-[#f07bfa]' : tone === 'blue' ? 'bg-[#5a9cff]/15 text-[#6eaaff]' : 'bg-[#9a7cff]/15 text-[#aa95ff]'}`}><Icon className="h-5 w-5" /></div>
-                <p className="text-sm font-bold">{label}</p><p className="mt-1 text-[11px] text-[#9293b4]">{hint}</p>
-              </button>
-            ))}
+        {/* Section Heading */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="eyebrow">Vault Modules</p>
+            <h3 className="title-section text-vault-text">Core Categories</h3>
+          </div>
+        </div>
+
+        {/* 4-Module Fluid Grid (Section 12.2) */}
+        <div className="content-grid">
+          {modules.map((m) => {
+            const Icon = m.icon;
+            return (
+              <div
+                key={m.id}
+                onClick={() => navigate(m.path)}
+                className={`glass-card p-[clamp(1.25rem,2.5vw,1.75rem)] cursor-pointer group flex flex-col justify-between border ${m.borderColor} hover:border-vault-accentLight/40 transition-all`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${m.color} flex items-center justify-center border border-white/5`}>
+                      <Icon className={`w-6 h-6 ${m.iconColor}`} />
+                    </div>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white/5 text-vault-muted border border-vault-borderSubtle">
+                      {m.isLoading ? (
+                        <RefreshCw className="w-3 h-3 animate-spin inline" />
+                      ) : (
+                        `${m.count} ${m.unit}`
+                      )}
+                    </span>
+                  </div>
+
+                  <h4 className="font-display font-bold text-lg text-vault-text group-hover:text-vault-accentLight transition-colors">
+                    {m.title}
+                  </h4>
+                  <p className="text-xs sm:text-sm text-vault-muted mt-1 leading-relaxed">
+                    {m.description}
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-vault-borderSubtle flex items-center justify-between text-xs font-semibold text-vault-accentLight">
+                  <span>{m.actionLabel}</span>
+                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Quick Add & Privacy Note */}
+        <section className="mt-8 p-5 rounded-2xl border border-vault-borderSubtle bg-vault-surface/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-vault-accentMuted flex items-center justify-center text-vault-accentLight shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-vault-text">Add New Vault Item</p>
+              <p className="text-xs text-vault-muted">Store credit cards, bank accounts, passwords or custom collections.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => navigate('/cards')}
+              className="btn-secondary text-xs flex-1 sm:flex-initial py-2"
+            >
+              + Card
+            </button>
+            <button
+              onClick={() => navigate('/passwords')}
+              className="btn-secondary text-xs flex-1 sm:flex-initial py-2"
+            >
+              + Password
+            </button>
+            <button
+              onClick={() => navigate('/collections')}
+              className="btn-primary text-xs flex-1 sm:flex-initial py-2"
+            >
+              + Collection
+            </button>
           </div>
         </section>
-
-        <section className="glass mb-6 p-5">
-          <div className="mb-5 flex items-center justify-between"><div><p className="eyebrow">Activity</p><h2 className="mt-1 text-lg font-bold">Recently secured</h2></div><button className="grid h-9 w-9 place-items-center rounded-xl bg-white/5"><ChevronRight className="h-4 w-4 text-[#aaa8c8]" /></button></div>
-          <div className="space-y-4">
-            {activity.map(({ title, detail, time, icon: Icon, color }) => (
-              <div key={title} className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-white/5"><Icon className={`h-4 w-4 ${color}`} /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{title}</p><p className="text-xs text-[#9293b4]">{detail}</p></div><div className="flex items-center gap-1 text-[10px] text-[#777898]"><Clock3 className="h-3 w-3" />{time}</div></div>
-            ))}
-          </div>
-        </section>
-
-        <button onClick={() => navigate('/collections')} className="flex w-full items-center justify-between rounded-2xl border border-dashed border-[#9a7cff]/40 bg-[#9a7cff]/5 p-4 text-left transition hover:bg-[#9a7cff]/10">
-          <span className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#9a7cff]/15 text-[#aa95ff]"><Plus className="h-5 w-5" /></span><span><span className="block text-sm font-bold">Add something new</span><span className="block text-xs text-[#9293b4]">Keep your digital life in one safe place</span></span></span><ChevronRight className="h-4 w-4 text-[#9293b4]" />
-        </button>
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-white/10 bg-[#0b0d20]/90 px-8 py-3 backdrop-blur-xl"><div className="mx-auto flex max-w-md items-center justify-between text-[#777898]"><button className="text-[#a88bff]"><LayoutGrid className="mx-auto h-5 w-5" /><span className="mt-1 block text-[10px] font-semibold">Home</span></button><button onClick={() => navigate('/collections')}><FolderLock className="mx-auto h-5 w-5" /><span className="mt-1 block text-[10px] font-semibold">Vault</span></button><button onClick={() => navigate('/cards')}><CreditCard className="mx-auto h-5 w-5" /><span className="mt-1 block text-[10px] font-semibold">Cards</span></button><button><KeyRound className="mx-auto h-5 w-5" /><span className="mt-1 block text-[10px] font-semibold">Settings</span></button></div></nav>
+
+      {/* Footer matching Section 12.4 */}
+      <footer className="w-full border-t border-vault-borderSubtle py-4 px-4 mb-16 text-center text-xs text-vault-muted">
+        <p>© 2026 Secure Save. All rights reserved. Made with ♥ by AK</p>
+      </footer>
     </div>
   );
 };

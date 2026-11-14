@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://secure-save-api.onrender.com/api'),
@@ -9,26 +10,33 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const persistedAuth = localStorage.getItem('secure-save-auth');
-  if (persistedAuth) {
-    try {
-      const token = JSON.parse(persistedAuth)?.state?.token;
-      if (typeof token === 'string' && token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.error('Unable to read saved authentication state', error);
-    }
+  const token = useAuthStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+// Handle 401 unauthorized globally
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // If unauthorized on protected endpoint, lock vault
+      if (!error.config?.url?.includes('/auth/session/login') && !error.config?.url?.includes('/auth/session/lookup')) {
+        useAuthStore.getState().logout();
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;
 
 export const getApiErrorMessage = (error: unknown, fallback: string): string => {
   if (axios.isAxiosError(error)) {
     if (!error.response) {
-      return `${fallback} Check your internet connection and try again.`;
+      return `${fallback} Please check your network connection and try again.`;
     }
 
     const message = error.response.data?.message;
