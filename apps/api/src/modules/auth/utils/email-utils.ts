@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { LOGO_BASE64 } from './logo-base64';
 
 dotenv.config();
 
@@ -114,39 +115,50 @@ const generateOtpEmailTemplate = (data: { otp: string; expiresAt: Date }): strin
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>OTP Verification - Secure Save</title>
       <style>
-        body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header { background-color: #8B7CFF; color: white; padding: 30px; text-align: center; }
-        .content { padding: 40px; }
-        .otp-code { font-size: 36px; font-weight: bold; color: #8B7CFF; text-align: center; margin: 30px 0; padding: 20px; background-color: #f8f8ff; border-radius: 8px; letter-spacing: 5px; }
-        .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
-        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #090B12; margin: 0; padding: 20px; color: #E5E7EB; }
+        .container { max-width: 560px; margin: 0 auto; background-color: #0F1322; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .header { background: linear-gradient(135deg, #161B30 0%, #0F1322 100%); padding: 36px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .logo { width: 72px; height: 72px; margin: 0 auto 14px auto; display: block; border-radius: 16px; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.5px; }
+        .header p { margin: 6px 0 0 0; font-size: 13px; color: #94A3B8; }
+        .content { padding: 36px 32px; background-color: #0F1322; }
+        .content h2 { margin: 0 0 12px 0; font-size: 20px; color: #FFFFFF; font-weight: 600; }
+        .content p { font-size: 14px; line-height: 1.6; color: #94A3B8; margin: 0 0 18px 0; }
+        .otp-box { background: linear-gradient(180deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 100%); border: 1px solid rgba(139, 92, 246, 0.35); border-radius: 12px; padding: 22px; text-align: center; margin: 26px 0; }
+        .otp-code { font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #C4B5FD; font-family: 'Courier New', Courier, monospace; }
+        .expiry { font-size: 12px; color: #A78BFA; margin-top: 8px; }
+        .warning { background-color: rgba(234, 179, 8, 0.08); border-left: 3px solid #EAB308; padding: 14px; border-radius: 6px; margin: 24px 0; font-size: 13px; color: #FDE047; }
+        .footer { background-color: #0B0E17; padding: 24px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); }
+        .footer p { margin: 4px 0; font-size: 12px; color: #64748B; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
+          <img src="data:image/png;base64,${LOGO_BASE64}" alt="Secure Save Logo" class="logo" />
           <h1>Secure Save</h1>
-          <p>Secure. Simple. Private.</p>
+          <p>Client-Side Encrypted Personal Vault</p>
         </div>
         <div class="content">
           <h2>Verify Your Email Address</h2>
-          <p>Use the following verification code to complete your registration:</p>
-          <div class="otp-code">${data.otp}</div>
-          <p><strong>Expires at:</strong> ${expiryTime}</p>
-          <div class="warning">
-            <strong>Security Notice:</strong> This code will expire in 5 minutes. Never share this code with anyone.
+          <p>Use the one-time verification code below to verify your account and access your vault:</p>
+          <div class="otp-box">
+            <div class="otp-code">${data.otp}</div>
+            <div class="expiry">Valid until ${expiryTime}</div>
           </div>
-          <p>If you didn't request this verification, please contact support immediately.</p>
+          <div class="warning">
+            <strong>Security Notice:</strong> This code will expire in 5 minutes. Never share this code with anyone. Secure Save employees will never ask for your code.
+          </div>
+          <p>If you did not request this verification code, you can safely ignore this email.</p>
         </div>
         <div class="footer">
           <p>© 2026 Secure Save. All rights reserved.</p>
-          <p>Made with ♥ by AK</p>
+          <p>Zero-Knowledge Encryption • Made with ♥ by AK</p>
         </div>
       </div>
     </body>
     </html>
   `;
-}
+};
 
 export { generateEmailTemplate };

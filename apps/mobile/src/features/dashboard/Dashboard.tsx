@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -12,6 +12,8 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  Check,
+  Lock,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../services/api';
@@ -19,6 +21,8 @@ import api from '../../services/api';
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+  const [justRefreshed, setJustRefreshed] = useState(false);
 
   // Real backend queries for actual vault counts
   const { data: cards = [], isLoading: isLoadingCards, refetch: refetchCards } = useQuery({
@@ -53,13 +57,30 @@ export const Dashboard: React.FC = () => {
     },
   });
 
-  const isRefreshing = isLoadingCards || isLoadingPasswords || isLoadingBanks || isLoadingCollections;
+  const isRefreshing = manualRefreshing || isLoadingCards || isLoadingPasswords || isLoadingBanks || isLoadingCollections;
 
-  const handleRefresh = () => {
-    refetchCards();
-    refetchPasswords();
-    refetchBanks();
-    refetchCollections();
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setManualRefreshing(true);
+    setJustRefreshed(false);
+    const startTime = Date.now();
+    try {
+      await Promise.all([
+        refetchCards(),
+        refetchPasswords(),
+        refetchBanks(),
+        refetchCollections(),
+      ]);
+    } finally {
+      // Ensure the rotation animation is visible for at least 650ms
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 650 - elapsed);
+      setTimeout(() => {
+        setManualRefreshing(false);
+        setJustRefreshed(true);
+        setTimeout(() => setJustRefreshed(false), 2000);
+      }, remaining);
+    }
   };
 
   const totalVaultItems = cards.length + passwords.length + banks.length + collections.length;
@@ -137,7 +158,9 @@ export const Dashboard: React.FC = () => {
               />
             </div>
             <div>
-              <p className="eyebrow leading-none">Vault Active</p>
+              <p className="eyebrow leading-none truncate max-w-[140px] sm:max-w-[240px]">
+                {user?.email || 'Vault Active'}
+              </p>
               <h1 className="font-display font-bold text-base tracking-tight text-vault-text">
                 Secure Save
               </h1>
@@ -149,10 +172,25 @@ export const Dashboard: React.FC = () => {
               onClick={handleRefresh}
               disabled={isRefreshing}
               aria-label="Refresh vault data"
-              className="p-2 rounded-xl text-vault-muted hover:text-vault-text hover:bg-vault-surface/60 transition-colors"
+              className={`flex items-center gap-1.5 p-2 px-2.5 rounded-xl transition-all ${
+                justRefreshed
+                  ? 'text-vault-success bg-vault-success/15 border border-vault-success/30'
+                  : 'text-vault-muted hover:text-vault-text hover:bg-vault-surface/60'
+              }`}
               title="Refresh vault"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-vault-accentLight' : ''}`} />
+              {justRefreshed ? (
+                <>
+                  <Check className="w-4 h-4 text-vault-success animate-in zoom-in-50 duration-200" />
+                  <span className="text-[11px] font-semibold text-vault-success hidden sm:inline">Updated</span>
+                </>
+              ) : (
+                <RefreshCw
+                  className={`w-4 h-4 transition-transform ${
+                    isRefreshing ? 'animate-spin text-vault-accentLight' : ''
+                  }`}
+                />
+              )}
             </button>
 
             <div className="h-4 w-[1px] bg-vault-borderSubtle mx-1" />
@@ -170,52 +208,16 @@ export const Dashboard: React.FC = () => {
 
       {/* Main Page Container */}
       <main className="page-container flex-1">
-        {/* Vault Status Hero Banner */}
-        <section className="glass-surface p-[clamp(1.25rem,3.5vw,2.25rem)] mb-[clamp(1.25rem,2.5vw,2rem)] relative overflow-hidden">
-          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
-          <div className="absolute right-32 -bottom-20 w-48 h-48 rounded-full bg-fuchsia-600/10 blur-2xl pointer-events-none" />
-
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-vault-success/10 text-vault-success border border-vault-success/20">
-                  <Shield className="w-3 h-3" /> Encrypted & Unlocked
-                </span>
-                <span className="text-xs text-vault-muted truncate max-w-[200px]">
-                  {user?.email}
-                </span>
-              </div>
-              <h2 className="title-hero text-vault-text">
-                Your Vault Overview
-              </h2>
-              <p className="text-xs sm:text-sm text-vault-muted mt-1 max-w-lg leading-relaxed">
-                All records are client-side encrypted with AES-256-GCM. Only your authenticated session can decrypt them.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-4 bg-vault-bg/60 p-4 rounded-2xl border border-vault-borderSubtle shrink-0">
-              <div className="text-center px-3">
-                <p className="text-[11px] font-semibold text-vault-muted uppercase tracking-wider">Total Items</p>
-                <p className="font-display font-bold text-2xl sm:text-3xl text-vault-text mt-0.5">
-                  {totalVaultItems}
-                </p>
-              </div>
-              <div className="h-10 w-[1px] bg-vault-borderSubtle" />
-              <div className="text-center px-3">
-                <p className="text-[11px] font-semibold text-vault-muted uppercase tracking-wider">Active Modules</p>
-                <p className="font-display font-bold text-2xl sm:text-3xl text-vault-accentLight mt-0.5">
-                  4
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Section Heading */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 mt-2">
           <div>
             <p className="eyebrow">Vault Modules</p>
             <h3 className="title-section text-vault-text">Core Categories</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-vault-surface/60 text-vault-muted border border-vault-borderSubtle">
+              {totalVaultItems} {totalVaultItems === 1 ? 'total item' : 'total items'}
+            </span>
           </div>
         </div>
 
@@ -294,8 +296,12 @@ export const Dashboard: React.FC = () => {
         </section>
       </main>
 
-      {/* Footer matching Section 12.4 */}
-      <footer className="w-full border-t border-vault-borderSubtle py-4 px-4 mb-16 text-center text-xs text-vault-muted">
+      {/* Footer matching Section 12.4 with End-to-End Encryption note */}
+      <footer className="w-full border-t border-vault-borderSubtle py-6 px-4 mb-16 text-center text-xs text-vault-muted space-y-2">
+        <div className="flex items-center justify-center gap-1.5 text-vault-muted/90">
+          <Shield className="w-3.5 h-3.5 text-vault-success" />
+          <span>Zero-Knowledge AES-256-GCM client-side encryption. Only your PIN decrypts your data.</span>
+        </div>
         <p>© 2026 Secure Save. All rights reserved. Made with ♥ by AK</p>
       </footer>
     </div>
