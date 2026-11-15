@@ -3,21 +3,58 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const SMTP_TIMEOUT_MS = 10_000;
+
+const getRequiredEnv = (name: string): string => {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`Missing required SMTP configuration: ${name}`);
+  }
+  return value;
+};
+
+const getPort = (): number => {
+  const rawPort = process.env.SMTP_PORT?.trim() || '587';
+  const port = Number(rawPort);
+
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid SMTP_PORT: ${rawPort}`);
+  }
+
+  return port;
+};
+
+const getSecureSetting = (port: number): boolean => {
+  const configuredSecure = process.env.SMTP_SECURE?.trim().toLowerCase();
+  if (configuredSecure === 'true') return true;
+  if (configuredSecure === 'false') return false;
+  if (configuredSecure) {
+    throw new Error(`Invalid SMTP_SECURE: ${configuredSecure}. Use true or false.`);
+  }
+  return port === 465;
+};
+
 const getTransporter = () => {
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const isSecure = port === 465;
+  const port = getPort();
+  const isSecure = getSecureSetting(port);
+  const host = getRequiredEnv('SMTP_HOST');
+  const user = getRequiredEnv('SMTP_USER');
+  const password = getRequiredEnv('SMTP_PASSWORD');
 
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    host,
     port,
     secure: isSecure,
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD
+      user,
+      pass: password
     },
-    // Prevent SSL handshake drops on cloud platforms (e.g. Render / Linux)
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+    socketTimeout: SMTP_TIMEOUT_MS,
+    requireTLS: !isSecure && port === 587,
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: true
     }
   });
 };
@@ -30,8 +67,8 @@ export const sendEmail = async (to: string, options: {
   const html = await generateEmailTemplate(options.template, options.data);
   const transporter = getTransporter();
 
-  const fromName = process.env.SMTP_FROM_NAME || 'Secure Save';
-  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+  const fromName = process.env.SMTP_FROM_NAME?.trim() || 'Secure Save';
+  const fromEmail = process.env.SMTP_FROM_EMAIL?.trim() || process.env.SMTP_USER;
 
   const mailOptions = {
     from: `"${fromName}" <${fromEmail}>`,

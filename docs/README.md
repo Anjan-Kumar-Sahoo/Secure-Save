@@ -87,9 +87,10 @@ Create `.env` files:
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/secure-save
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
+SMTP_SECURE=false
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
-SMTP_FROM_EMAIL=noreply@secure-save.com
+SMTP_FROM_EMAIL=your-email@gmail.com
 SMTP_FROM_NAME=Secure Save
 JWT_SECRET=your-super-secret-key
 NODE_ENV=development
@@ -98,6 +99,12 @@ MAX_OTP_ATTEMPTS=5
 OTP_EXPIRY_SECONDS=300
 OTP_RESEND_COOLDOWN=60
 ```
+
+For Gmail, enable 2-Step Verification and create an App Password. Use the
+16-character App Password for `SMTP_PASSWORD` and use the same mailbox for
+`SMTP_FROM_EMAIL` unless the address is configured as a verified Gmail
+send-as alias. For SMTP port 465, set `SMTP_SECURE=true`; for port 587, use
+`SMTP_SECURE=false`.
 
 **Mobile Frontend** (`apps/mobile/.env`):
 ```
