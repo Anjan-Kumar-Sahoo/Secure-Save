@@ -124,7 +124,7 @@ export const Register: React.FC = () => {
           <header className="flex items-center gap-3 mb-[clamp(1.5rem,3.5vw,2rem)]">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600/30 to-purple-800/30 border border-violet-500/25 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/20 overflow-hidden">
               <img
-                src="/secure-save-logo.png"
+                src="/logo.png"
                 alt="Secure Save Shield"
                 className="w-10 h-10 object-contain"
               />

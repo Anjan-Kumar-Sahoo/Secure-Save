@@ -131,7 +131,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600/30 to-purple-800/30 border border-violet-500/25 flex items-center justify-center shrink-0 shadow-md">
               <img
-                src="/secure-save-logo.png"
+                src="/logo.png"
                 alt="Secure Save"
                 className="w-8 h-8 object-contain"
               />
