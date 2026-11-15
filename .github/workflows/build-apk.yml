@@ -34,7 +34,7 @@ jobs:
 
       - name: Build Mobile Web App
         env:
-          VITE_API_URL: https://secure-save-api.onrender.com/api
+          VITE_API_URL: https://secure-save-blue.vercel.app/api
         run: |
           cd apps/mobile
           npm install

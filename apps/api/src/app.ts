@@ -63,6 +63,14 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'Secure Save API is running', timestamp: new Date().toISOString() });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
 });
