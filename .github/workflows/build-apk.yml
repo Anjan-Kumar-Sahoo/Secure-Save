@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build & Release Mobile Apps (Android & iOS)
 
 on:
   push:
@@ -11,7 +11,10 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  # ==========================================
+  # JOB 1: Build Android APK
+  # ==========================================
+  build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
 
@@ -57,26 +60,120 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
-      - name: Rename APK for Release
+      - name: Copy & Prepare APK
         run: |
-          cp apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk apps/mobile/android/app/build/outputs/apk/debug/securesave.apk
+          cp apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk securesave.apk
 
-      - name: Upload Debug APK Artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SecureSave-Debug-APK
-          path: apps/mobile/android/app/build/outputs/apk/debug/securesave.apk
+          name: SecureSave-Android-APK
+          path: securesave.apk
 
-      - name: Publish Latest APK Release
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+  # ==========================================
+  # JOB 2: Build iOS IPA Package
+  # ==========================================
+  build-ios:
+    name: Build iOS IPA Package
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Monorepo Dependencies
+        run: |
+          npm install
+          npm run build --workspace=@secure-save/shared-types || true
+
+      - name: Build Mobile Web App
+        env:
+          VITE_API_URL: https://secure-save-blue.vercel.app/api
+        run: |
+          cd apps/mobile
+          npm install
+          npm run build
+
+      - name: Add and Sync Capacitor iOS
+        run: |
+          cd apps/mobile
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+          npx cap sync ios
+
+      - name: Build iOS App with Xcode
+        run: |
+          cd apps/mobile/ios/App
+          xcodebuild build \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            -derivedDataPath build
+
+      - name: Package .app into .ipa for Sideloading
+        run: |
+          cd apps/mobile/ios/App
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          if [ -d "$APP_PATH" ]; then
+            mkdir -p Payload
+            cp -R "$APP_PATH" Payload/
+            zip -qr securesave.ipa Payload
+            cp securesave.ipa ../../../securesave.ipa
+          fi
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SecureSave-iOS-IPA
+          path: securesave.ipa
+
+  # ==========================================
+  # JOB 3: Publish Rolling Multi-Platform Release
+  # ==========================================
+  release:
+    name: Publish Multi-Platform Release
+    needs: [build-android, build-ios]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: SecureSave-Android-APK
+
+      - name: Download iOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: SecureSave-iOS-IPA
+
+      - name: Publish Rolling GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Secure Save Mobile App (Latest Build)"
-          body: "Automated rolling release with the latest Secure Save Android APK."
+          name: "Secure Save Mobile (Android APK & iOS IPA)"
+          body: |
+            ### 🚀 Automated Multi-Platform Release
+            - **Android:** Download `securesave.apk` for direct sideloading on Android devices.
+            - **iOS / iPadOS:** Download `securesave.ipa` for sideloading via AltStore, SideStore, or TrollStore.
+            - **PWA:** Visit [securesave.mraks.dev](https://securesave.mraks.dev) on Safari and select **Add to Home Screen**.
           draft: false
           prerelease: false
           files: |
-            apps/mobile/android/app/build/outputs/apk/debug/securesave.apk
+            securesave.apk
+            securesave.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
