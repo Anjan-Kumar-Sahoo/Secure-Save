@@ -10,10 +10,12 @@
   "scripts": {
     "dev:api": "npm run dev --workspace=@secure-save/api",
     "dev:mobile": "npm run dev --workspace=@secure-save/mobile",
+    "dev:webapp": "npm run dev --workspace=@secure-save/web-app",
     "build": "npm run build --workspace=@secure-save/api",
     "build:api": "npm run build --workspace=@secure-save/api",
     "start": "npm run start --workspace=@secure-save/api",
     "build:mobile": "npm run build --workspace=@secure-save/mobile",
+    "build:webapp": "npm run build --workspace=@secure-save/web-app",
     "test": "npm test --workspaces"
   },
   "keywords": [],
