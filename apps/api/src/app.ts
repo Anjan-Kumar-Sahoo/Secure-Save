@@ -30,16 +30,27 @@ app.use(helmet({
   }
 }));
 
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+const defaultAllowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'http://localhost:3000',
+  'https://securesave.mraks.dev',
+];
+
+const envOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map(origin => origin.trim())
   .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...envOrigins]));
 
 app.use(cors({
   origin: (origin, callback) => {
     if (
       !origin ||
       allowedOrigins.includes(origin) ||
+      origin.endsWith('.mraks.dev') ||
+      origin.endsWith('.vercel.app') ||
       origin === 'capacitor://localhost' ||
       origin === 'http://localhost' ||
       origin === 'https://localhost' ||
@@ -47,10 +58,15 @@ app.use(cors({
     ) {
       return callback(null, true);
     }
-    return callback(new Error('Origin is not allowed by CORS'));
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
 }));
+
+// Explicit preflight support for all routes
+app.options('*', cors());
 
 app.use(rateLimit({
   windowMs: process.env.RATE_LIMIT_WINDOW_MS ? parseInt(process.env.RATE_LIMIT_WINDOW_MS) : 60 * 1000,
