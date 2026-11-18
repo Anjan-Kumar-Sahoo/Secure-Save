@@ -70,8 +70,8 @@ export const LandingPage: React.FC = () => {
     },
     {
       icon: Smartphone,
-      title: 'Sync with Native Android App',
-      description: 'Access your vault anywhere seamlessly on web or through the high-performance native Android application.',
+      title: 'Mobile App Sync',
+      description: 'Access your vault anywhere seamlessly on the web or through the dedicated mobile application.',
       color: 'from-amber-500/20 to-orange-800/20',
       iconColor: 'text-amber-400',
     },
@@ -269,13 +269,13 @@ export const LandingPage: React.FC = () => {
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
               <div className="max-w-xl">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/20 text-violet-300 mb-3 border border-violet-500/30">
-                  <Smartphone className="w-3.5 h-3.5" /> Android App Available
+                  <Smartphone className="w-3.5 h-3.5" /> App Available
                 </span>
                 <h3 className="font-display font-bold text-2xl sm:text-3xl text-white">
                   Take Your Vault Everywhere
                 </h3>
                 <p className="text-xs sm:text-sm text-vault-muted mt-2 leading-relaxed">
-                  Install the native Android application built with biometric authentication, instant offline caching, and native notifications.
+                  Install the standalone mobile application for biometric authentication, instant offline caching, and native notifications.
                 </p>
               </div>
 
