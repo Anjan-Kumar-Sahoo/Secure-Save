@@ -75,7 +75,8 @@ jobs:
   # ==========================================
   build-ios:
     name: Build iOS IPA Package
-    runs-on: macos-14
+    runs-on: macos-latest
+    continue-on-error: true
 
     steps:
       - name: Checkout Repository
@@ -143,7 +144,7 @@ jobs:
   release:
     name: Publish Multi-Platform Release
     needs: [build-android, build-ios]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: always() && (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'))
     runs-on: ubuntu-latest
 
     steps:
@@ -152,28 +153,41 @@ jobs:
 
       - name: Download Android Artifact
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: SecureSave-Android-APK
 
       - name: Download iOS Artifact
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: SecureSave-iOS-IPA
 
+      - name: Collect Available Files
+        id: collect
+        run: |
+          FILES=""
+          if [ -f "securesave.apk" ]; then
+            FILES="securesave.apk"
+          fi
+          if [ -f "securesave.ipa" ]; then
+            FILES="${FILES} securesave.ipa"
+          fi
+          echo "release_files=${FILES}" >> $GITHUB_OUTPUT
+
       - name: Publish Rolling GitHub Release
+        if: steps.collect.outputs.release_files != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Secure Save Mobile (Android APK & iOS IPA)"
+          name: "Secure Save Mobile (Latest Release)"
           body: |
-            ### 🚀 Automated Multi-Platform Release
+            ### 🚀 Automated Mobile Releases
             - **Android:** Download `securesave.apk` for direct sideloading on Android devices.
             - **iOS / iPadOS:** Download `securesave.ipa` for sideloading via AltStore, SideStore, or TrollStore.
             - **PWA:** Visit [securesave.mraks.dev](https://securesave.mraks.dev) on Safari and select **Add to Home Screen**.
           draft: false
           prerelease: false
-          files: |
-            securesave.apk
-            securesave.ipa
+          files: ${{ steps.collect.outputs.release_files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
