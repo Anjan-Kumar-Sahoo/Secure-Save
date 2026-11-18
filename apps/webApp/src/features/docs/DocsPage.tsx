@@ -1,39 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   BookOpen,
   Cpu,
   Layers,
   Database,
   Server,
-  Terminal,
   ShieldCheck,
-  CheckCircle,
-  Copy,
-  Check,
-  ExternalLink,
-  ChevronRight,
-  GitBranch,
-  Smartphone,
   ArrowRight,
-  Flame,
-  Zap,
+  GitBranch,
+  Workflow,
+  Sparkles,
 } from 'lucide-react';
 import { InteractiveArchitecture3D } from './InteractiveArchitecture3D';
 import { InteractiveSchemaViewer } from './InteractiveSchemaViewer';
+import { InteractiveAppFlow } from './InteractiveAppFlow';
+import { EnhancedDeploymentSection } from './EnhancedDeploymentSection';
 import { Hero3DCanvas } from '../landing/Hero3DCanvas';
 import { InstallAppButton } from '../../components/InstallAppButton';
 
 export const DocsPage: React.FC = () => {
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
-
   const techStack = [
     {
       category: 'Frontend & Web Client',
@@ -86,35 +72,6 @@ export const DocsPage: React.FC = () => {
     },
   ];
 
-  const envConfigs = [
-    { key: 'VITE_API_URL', val: 'https://secure-save-blue.vercel.app/api', desc: 'Backend REST API endpoint for WebApp & Mobile' },
-    { key: 'MONGODB_URI', val: 'mongodb+srv://<user>:<pwd>@cluster0.mongodb.net/securesave', desc: 'Atlas connection string with 0.0.0.0/0 whitelist' },
-    { key: 'JWT_SECRET', val: 'your_super_secret_jwt_random_key_64_chars', desc: 'HMAC signature secret for session tokens' },
-    { key: 'SMTP_HOST / USER / PASSWORD', val: 'smtp.gmail.com / user / app_pass', desc: 'Nodemailer SMTP configuration for 6-digit OTP emails' },
-    { key: 'CORS_ORIGIN', val: 'https://securesave.mraks.dev,http://localhost:5173', desc: 'Allowed origin whitelist for API cross-origin requests' },
-  ];
-
-  const deploymentSteps = [
-    {
-      title: '1. Backend Deployment (Vercel)',
-      badge: 'API Engine',
-      code: `cd apps/api\nvercel --prod`,
-      notes: 'Root Directory: apps/api. Set vercel.json rewrite to route /* to /api serverless function.',
-    },
-    {
-      title: '2. Frontend WebApp (Vercel)',
-      badge: 'WebApp SPA',
-      code: `cd apps/webApp\nvercel --prod`,
-      notes: 'Root Directory: apps/webApp. Framework: Vite. Set VITE_API_URL in Environment Variables.',
-    },
-    {
-      title: '3. Android APK CI/CD (GitHub Actions)',
-      badge: 'Automated Releases',
-      code: `git push origin main`,
-      notes: 'build-apk.yml builds release APK and attaches securesave.apk to github.com/.../releases/tag/latest.',
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-vault-bg text-vault-text relative overflow-x-hidden selection:bg-purple-600/30 selection:text-white">
       {/* Dynamic 3D Particle Canvas */}
@@ -124,7 +81,7 @@ export const DocsPage: React.FC = () => {
       <header className="sticky top-0 z-50 w-full border-b border-vault-borderSubtle bg-vault-bg/85 backdrop-blur-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600/40 to-purple-800/40 border border-violet-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-violet-950/40 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-violet-600/40 to-purple-800/40 border border-violet-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-violet-950/40 group-hover:scale-105 transition-transform">
               <img src="/logo.png" alt="Secure Save Logo" className="w-8 h-8 object-contain" />
             </div>
             <div>
@@ -178,7 +135,7 @@ export const DocsPage: React.FC = () => {
           <InteractiveArchitecture3D />
         </section>
 
-        {/* Section 3: Tech Stack Visual Grid */}
+        {/* Section 3: Technology Ecosystem Visual Grid */}
         <section className="space-y-6">
           <div>
             <p className="eyebrow">Foundation</p>
@@ -211,7 +168,22 @@ export const DocsPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Section 4: Database Schema Visualizer */}
+        {/* Section 4: Interactive Application Lifecycle Flow */}
+        <section className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <p className="eyebrow">Execution Pipeline</p>
+              <h3 className="title-hero text-white text-2xl sm:text-3xl">Application Lifecycle Flow</h3>
+            </div>
+            <span className="text-xs font-mono text-vault-accentLight bg-violet-950/40 px-3 py-1 rounded-full border border-violet-500/30">
+              5-Step Zero-Knowledge Chain
+            </span>
+          </div>
+
+          <InteractiveAppFlow />
+        </section>
+
+        {/* Section 5: Database Schema Visualizer */}
         <section className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
             <div>
@@ -226,75 +198,19 @@ export const DocsPage: React.FC = () => {
           <InteractiveSchemaViewer />
         </section>
 
-        {/* Section 5: Configuration Guide */}
-        <section className="space-y-6">
-          <div>
-            <p className="eyebrow">Environment Setup</p>
-            <h3 className="title-hero text-white text-2xl sm:text-3xl">Configuration Guide</h3>
-          </div>
-
-          <div className="glass-surface p-6 sm:p-8 rounded-3xl border border-white/10 space-y-4">
-            <p className="text-xs sm:text-sm text-vault-muted">
-              Production environment variables configured across Vercel API and WebApp:
-            </p>
-
-            <div className="space-y-3 font-mono text-xs">
-              {envConfigs.map((cfg) => (
-                <div
-                  key={cfg.key}
-                  className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                >
-                  <div className="min-w-0">
-                    <span className="text-vault-accentLight font-bold">{cfg.key}</span>
-                    <p className="text-[11px] font-sans text-vault-muted mt-0.5">{cfg.desc}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <code className="text-[11px] bg-white/5 px-2.5 py-1 rounded-lg text-emerald-300 truncate max-w-xs">
-                      {cfg.val}
-                    </code>
-                    <button
-                      onClick={() => copyToClipboard(cfg.val, cfg.key)}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-vault-muted hover:text-white transition-colors"
-                      title="Copy value"
-                    >
-                      {copiedKey === cfg.key ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Section 6: Deployment Pipelines */}
+        {/* Section 6: Enhanced Deployment Center */}
         <section className="space-y-6 pb-12">
-          <div>
-            <p className="eyebrow">Release Engineering</p>
-            <h3 className="title-hero text-white text-2xl sm:text-3xl">Continuous Deployment Pipeline</h3>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <p className="eyebrow">Release Engineering</p>
+              <h3 className="title-hero text-white text-2xl sm:text-3xl">Production Deployment Hub</h3>
+            </div>
+            <p className="text-xs text-vault-muted font-mono">
+              Switch platforms to review presets & live pipelines
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {deploymentSteps.map((step) => (
-              <div key={step.title} className="glass-surface p-6 rounded-3xl border border-white/10 flex flex-col justify-between">
-                <div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                    {step.badge}
-                  </span>
-                  <h4 className="text-base font-bold text-white mt-2 mb-2">{step.title}</h4>
-                  <pre className="p-3 rounded-xl bg-black/60 border border-white/5 font-mono text-xs text-vault-accentLight overflow-x-auto">
-                    {step.code}
-                  </pre>
-                  <p className="text-xs text-vault-muted mt-3 leading-relaxed">
-                    {step.notes}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <EnhancedDeploymentSection />
         </section>
       </main>
 
