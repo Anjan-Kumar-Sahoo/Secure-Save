@@ -136,22 +136,21 @@ jobs:
           else
             echo "No .app bundle found from xcodebuild; creating ad-hoc archive container."
             mkdir -p Payload/SecureSave.app
-            cat << 'EOF' > Payload/SecureSave.app/Info.plist
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleDisplayName</key>
-  <string>SecureSave</string>
-  <key>CFBundleIdentifier</key>
-  <string>dev.mraks.securesave</string>
-  <key>CFBundleVersion</key>
-  <string>1.0.0</string>
-  <key>CFBundleShortVersionString</key>
-  <string>1.0.0</string>
-</dict>
-</plist>
-EOF
+            printf '%s\n' \
+              '<?xml version="1.0" encoding="UTF-8"?>' \
+              '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+              '<plist version="1.0">' \
+              '<dict>' \
+              '  <key>CFBundleDisplayName</key>' \
+              '  <string>SecureSave</string>' \
+              '  <key>CFBundleIdentifier</key>' \
+              '  <string>dev.mraks.securesave</string>' \
+              '  <key>CFBundleVersion</key>' \
+              '  <string>1.0.0</string>' \
+              '  <key>CFBundleShortVersionString</key>' \
+              '  <string>1.0.0</string>' \
+              '</dict>' \
+              '</plist>' > Payload/SecureSave.app/Info.plist
             zip -qr securesave.ipa Payload
             cp securesave.ipa ../../../securesave.ipa
           fi
