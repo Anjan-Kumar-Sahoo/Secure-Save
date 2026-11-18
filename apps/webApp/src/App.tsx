@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LandingPage } from './features/landing/LandingPage';
+import { DocsPage } from './features/docs/DocsPage';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { Login } from './features/auth/Login';
 import { ForgotPin } from './features/auth/ForgotPin';
@@ -19,6 +20,8 @@ function App() {
       <Routes>
         {/* Landing Page */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/docs" element={<DocsPage />} />
+        <Route path="/doc" element={<Navigate to="/docs" replace />} />
 
         {/* Public Authentication Routes */}
         <Route path="/login" element={<Login />} />

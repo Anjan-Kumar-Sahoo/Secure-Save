@@ -110,6 +110,12 @@ export const LandingPage: React.FC = () => {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/docs"
+              className="px-3 py-1.5 rounded-xl border border-white/10 hover:border-violet-500/30 bg-white/[0.03] hover:bg-white/[0.08] text-vault-text text-xs sm:text-sm font-semibold transition-colors"
+            >
+              Docs
+            </Link>
             <InstallAppButton variant="nav" />
             <div className="h-4 w-[1px] bg-vault-borderSubtle mx-1 hidden sm:block" />
             {token ? (
