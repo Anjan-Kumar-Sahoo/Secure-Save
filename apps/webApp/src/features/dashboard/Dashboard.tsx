@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../services/api';
+import { InstallAppButton } from '../../components/InstallAppButton';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -168,6 +169,10 @@ export const Dashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <InstallAppButton variant="nav" />
+
+            <div className="h-4 w-[1px] bg-vault-borderSubtle mx-0.5" />
+
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
@@ -293,6 +298,11 @@ export const Dashboard: React.FC = () => {
               + Collection
             </button>
           </div>
+        </section>
+
+        {/* Mobile App Promotion Banner */}
+        <section className="mt-6">
+          <InstallAppButton variant="banner" />
         </section>
       </main>
 

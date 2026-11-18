@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { LandingPage } from './features/landing/LandingPage';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { Login } from './features/auth/Login';
 import { ForgotPin } from './features/auth/ForgotPin';
@@ -10,11 +11,15 @@ import { PasswordListing } from './features/passwords/PasswordListing';
 import { CollectionsListing } from './features/collections/CollectionsListing';
 import { CollectionDetail } from './features/collections/collection-detail/CollectionDetail';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { BottomNav } from './components/BottomNav';
 
 function App() {
   return (
     <div className="app-shell text-vault-text">
       <Routes>
+        {/* Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* Public Authentication Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -31,8 +36,9 @@ function App() {
         </Route>
 
         {/* Default Catch-all */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <BottomNav />
     </div>
   );
 }

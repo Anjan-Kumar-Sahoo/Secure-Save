@@ -1,10 +1,17 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutGrid, CreditCard, KeyRound, Landmark, FolderLock } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const token = useAuthStore((state) => state.token);
+
+  // Do not render bottom navigation on public authentication pages or when logged out
+  if (!token || ['/login', '/register', '/forgot-pin'].includes(location.pathname)) {
+    return null;
+  }
 
   const navItems = [
     { label: 'Home', path: '/dashboard', icon: LayoutGrid },

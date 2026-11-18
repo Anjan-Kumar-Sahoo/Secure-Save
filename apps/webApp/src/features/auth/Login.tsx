@@ -2,10 +2,11 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowRight, Eye, EyeOff, Lock, Mail, Shield, AlertCircle, RefreshCw, KeyRound } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Shield, AlertCircle, RefreshCw, KeyRound, Download } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import api, { getApiErrorMessage } from '../../services/api';
+import { InstallAppButton } from '../../components/InstallAppButton';
 
 const emailSchema = z.object({
   email: z.string().trim().min(1, 'Email address is required').email('Enter a valid email address'),
@@ -134,20 +135,23 @@ export const Login: React.FC = () => {
       <main className="w-full max-w-[min(100%,30rem)] mx-auto">
         <div className="glass-surface p-[clamp(1.25rem,4vw,2.5rem)] w-full">
           {/* Header Branding: Always compact and strictly contained */}
-          <header className="flex items-center gap-3 mb-[clamp(1.5rem,3.5vw,2rem)]">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600/30 to-purple-800/30 border border-violet-500/25 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/20 overflow-hidden">
-              <img
-                src="/logo.png"
-                alt="Secure Save Shield"
-                className="w-10 h-10 object-contain"
-              />
+          <header className="flex items-center justify-between gap-3 mb-[clamp(1.5rem,3.5vw,2rem)]">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600/30 to-purple-800/30 border border-violet-500/25 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/20 overflow-hidden">
+                <img
+                  src="/logo.png"
+                  alt="Secure Save Shield"
+                  className="w-10 h-10 object-contain"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="eyebrow">Personal Vault</p>
+                <h1 className="font-display font-bold text-lg tracking-tight text-vault-text truncate">
+                  Secure Save
+                </h1>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="eyebrow">Personal Vault</p>
-              <h1 className="font-display font-bold text-lg tracking-tight text-vault-text truncate">
-                Secure Save
-              </h1>
-            </div>
+            <InstallAppButton variant="nav" />
           </header>
 
           {/* Error Banner */}
