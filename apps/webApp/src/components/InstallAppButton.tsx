@@ -160,25 +160,33 @@ export const InstallAppButton: React.FC<InstallAppButtonProps> = ({
               </div>
 
               {/* Method B: Native iOS IPA */}
-              <div className="p-4 rounded-2xl bg-black/30 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    Native iOS IPA Package
-                  </h4>
-                  <p className="text-[11px] text-vault-muted mt-0.5 leading-snug">
-                    For Sideloading (AltStore, SideStore, Scarlet, or TrollStore).
-                  </p>
+              <div className="p-4 rounded-2xl bg-black/30 border border-white/10 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      Native iOS IPA Package
+                    </h4>
+                    <p className="text-[11px] text-vault-muted mt-0.5 leading-snug">
+                      Requires Sideloading (AltStore, SideStore, Scarlet, or TrollStore).
+                    </p>
+                  </div>
+                  <a
+                    href={ipaDownloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary text-xs py-2 px-3 flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download .IPA</span>
+                  </a>
                 </div>
-                <a
-                  href={ipaDownloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary text-xs py-2 px-3 flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download .IPA</span>
-                </a>
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-200/90 leading-relaxed flex items-start gap-2">
+                  <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Apple iOS Note:</strong> Apple does not allow direct installation of .IPA files by simply tapping on them. Use the Safari <strong>"Add to Home Screen"</strong> option above for immediate 1-click installation without extra tools.
+                  </span>
+                </div>
               </div>
             </div>
           )}
