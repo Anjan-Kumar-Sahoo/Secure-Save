@@ -40,14 +40,28 @@ export const cardService = {
   /**
    * Encrypt and create a new card vault item
    */
-  async create(title: string, data: DecryptedCardData): Promise<ApiResponse> {
+  async create(title: string, data: any): Promise<ApiResponse> {
+    const cardHolderName = (data.cardHolderName || data.cardholderName || '').trim();
+    const expiry = (data.expiry || '').trim();
+    let expiryMonth = data.expiryMonth || '';
+    let expiryYear = data.expiryYear || '';
+    if (expiry && expiry.includes('/')) {
+      const parts = expiry.split('/');
+      expiryMonth = parts[0]?.trim() || '';
+      expiryYear = parts[1]?.trim() || '';
+    } else if (!expiry && expiryMonth && expiryYear) {
+      // keep month and year
+    }
+
     const encryptedPayload = await VaultCrypto.encrypt({
-      cardHolderName: (data.cardHolderName || '').trim(),
+      cardHolderName,
+      cardholderName: cardHolderName,
       cardNumber: (data.cardNumber || '').replace(/\s+/g, ''),
       cardType: data.cardType || 'Visa',
-      expiryMonth: data.expiryMonth,
-      expiryYear: data.expiryYear,
-      cvv: data.cvv,
+      expiry: expiry || (expiryMonth && expiryYear ? `${expiryMonth}/${expiryYear}` : ''),
+      expiryMonth,
+      expiryYear,
+      cvv: data.cvv || '',
       bankName: (data.bankName || '').trim(),
       nickname: (data.nickname || '').trim(),
       notes: (data.notes || '').trim(),
@@ -64,14 +78,26 @@ export const cardService = {
   /**
    * Encrypt and update an existing card vault item
    */
-  async update(id: string, title: string, data: DecryptedCardData): Promise<ApiResponse> {
+  async update(id: string, title: string, data: any): Promise<ApiResponse> {
+    const cardHolderName = (data.cardHolderName || data.cardholderName || '').trim();
+    const expiry = (data.expiry || '').trim();
+    let expiryMonth = data.expiryMonth || '';
+    let expiryYear = data.expiryYear || '';
+    if (expiry && expiry.includes('/')) {
+      const parts = expiry.split('/');
+      expiryMonth = parts[0]?.trim() || '';
+      expiryYear = parts[1]?.trim() || '';
+    }
+
     const encryptedPayload = await VaultCrypto.encrypt({
-      cardHolderName: (data.cardHolderName || '').trim(),
+      cardHolderName,
+      cardholderName: cardHolderName,
       cardNumber: (data.cardNumber || '').replace(/\s+/g, ''),
       cardType: data.cardType || 'Visa',
-      expiryMonth: data.expiryMonth,
-      expiryYear: data.expiryYear,
-      cvv: data.cvv,
+      expiry: expiry || (expiryMonth && expiryYear ? `${expiryMonth}/${expiryYear}` : ''),
+      expiryMonth,
+      expiryYear,
+      cvv: data.cvv || '',
       bankName: (data.bankName || '').trim(),
       nickname: (data.nickname || '').trim(),
       notes: (data.notes || '').trim(),

@@ -359,14 +359,14 @@ export const CardsListing: React.FC = () => {
                       <div>
                         <p className="text-[10px] uppercase font-bold text-vault-subtle">Cardholder</p>
                         <p className="font-medium text-vault-text truncate mt-0.5">
-                          {decrypted?.cardholderName || '—'}
+                          {decrypted?.cardholderName || (decrypted as any)?.cardHolderName || '—'}
                         </p>
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-[10px] uppercase font-bold text-vault-subtle">Expires</p>
                           <p className="font-medium text-vault-text mt-0.5">
-                            {decrypted?.expiry || '—'}
+                            {decrypted?.expiry || ((decrypted as any)?.expiryMonth ? `${(decrypted as any).expiryMonth}/${(decrypted as any).expiryYear}` : '—')}
                           </p>
                         </div>
                         {decrypted?.cvv && (

@@ -66,8 +66,18 @@ export const CardsListing: React.FC = () => {
       const decryptedCards = await Promise.all(
         rawCards.map(async (card) => {
           try {
-            const decrypted = await VaultCrypto.decrypt<DecryptedCardData>(card.encryptedPayload);
-            return { ...card, decrypted };
+            const d = await VaultCrypto.decrypt<any>(card.encryptedPayload);
+            return {
+              ...card,
+              decrypted: d ? {
+                cardholderName: d.cardholderName || d.cardHolderName || '',
+                cardNumber: d.cardNumber || '',
+                expiry: d.expiry || (d.expiryMonth ? `${d.expiryMonth}/${d.expiryYear}` : ''),
+                cvv: d.cvv || '',
+                cardType: d.cardType || 'General',
+                notes: d.notes,
+              } : undefined,
+            };
           } catch (err) {
             console.error('Failed to decrypt card:', card._id, err);
             return {
@@ -167,10 +177,23 @@ export const CardsListing: React.FC = () => {
     }
 
     try {
-      const payloadToEncrypt: DecryptedCardData = {
-        cardholderName: formData.cardholderName.trim(),
+      const cardHolderName = formData.cardholderName.trim();
+      const expiry = formData.expiry.trim();
+      let expiryMonth = '';
+      let expiryYear = '';
+      if (expiry && expiry.includes('/')) {
+        const parts = expiry.split('/');
+        expiryMonth = parts[0]?.trim() || '';
+        expiryYear = parts[1]?.trim() || '';
+      }
+
+      const payloadToEncrypt = {
+        cardholderName: cardHolderName,
+        cardHolderName: cardHolderName,
         cardNumber: cleanCardNumber,
-        expiry: formData.expiry.trim(),
+        expiry: expiry,
+        expiryMonth,
+        expiryYear,
         cvv: formData.cvv.trim(),
         cardType: formData.cardType,
         notes: formData.notes.trim(),
@@ -380,14 +403,14 @@ export const CardsListing: React.FC = () => {
                       <div>
                         <p className="text-[10px] uppercase font-bold text-vault-subtle">Cardholder</p>
                         <p className="font-medium text-vault-text truncate mt-0.5">
-                          {decrypted?.cardholderName || '—'}
+                          {decrypted?.cardholderName || (decrypted as any)?.cardHolderName || '—'}
                         </p>
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-[10px] uppercase font-bold text-vault-subtle">Expires</p>
                           <p className="font-medium text-vault-text mt-0.5">
-                            {decrypted?.expiry || '—'}
+                            {decrypted?.expiry || ((decrypted as any)?.expiryMonth ? `${(decrypted as any).expiryMonth}/${(decrypted as any).expiryYear}` : '—')}
                           </p>
                         </div>
                         {decrypted?.cvv && (
