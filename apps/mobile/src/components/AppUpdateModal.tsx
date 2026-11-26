@@ -6,9 +6,13 @@ import api from '../services/api';
 export const CURRENT_APP_VERSION = '1.2.0';
 export const CURRENT_VERSION_CODE = 3;
 
+// Injected at compile-time automatically by Vite whenever code is pushed/built
+declare const __APP_BUILD_TIME__: string;
+export const CURRENT_BUILD_TIMESTAMP = typeof __APP_BUILD_TIME__ !== 'undefined' ? __APP_BUILD_TIME__ : '2026-11-26T00:00:00Z';
+
 export interface AppVersionInfo {
   latestVersion: string;
-  versionCode: number;
+  versionCode?: number;
   releaseNotes?: string;
   downloadUrl: string;
   mandatory?: boolean;
@@ -40,29 +44,59 @@ export const AppUpdateModal: React.FC = () => {
     let isMounted = true;
 
     const checkVersion = async () => {
+      // 1. Try querying backend /api/app/version first
       try {
         const res = await api.get('/app/version');
         const data: AppVersionInfo = res.data?.data;
 
-        if (!data || !data.latestVersion) return;
+        if (data && data.latestVersion) {
+          const hasNewVersion =
+            (data.versionCode && data.versionCode > CURRENT_VERSION_CODE) ||
+            isNewerVersion(data.latestVersion, CURRENT_APP_VERSION);
 
-        // Check if remote version is newer or remote versionCode is greater
-        const hasNewVersion =
-          (data.versionCode && data.versionCode > CURRENT_VERSION_CODE) ||
-          isNewerVersion(data.latestVersion, CURRENT_APP_VERSION);
+          if (hasNewVersion && isMounted) {
+            setUpdateInfo(data);
+            setIsOpen(true);
+            return;
+          }
+        }
+      } catch {
+        // Backend /app/version might not be deployed yet on Vercel; proceed to GitHub check
+      }
 
-        if (hasNewVersion && isMounted) {
-          setUpdateInfo(data);
-          setIsOpen(true);
+      // 2. Query GitHub Releases directly (matches your screenshot: github.com/Anjan-Kumar-Sahoo/Secure-Save/releases)
+      try {
+        const ghRes = await fetch('https://api.github.com/repos/Anjan-Kumar-Sahoo/Secure-Save/releases/tags/latest', {
+          headers: { 'Accept': 'application/vnd.github.v3+json' },
+        });
+
+        if (ghRes.ok) {
+          const ghData = await ghRes.json();
+          const apkAsset = ghData.assets?.find((a: any) => a.name === 'securesave.apk');
+
+          if (apkAsset) {
+            // Check if GitHub has an APK built after this app was built
+            const assetTime = new Date(apkAsset.updated_at).getTime();
+            const buildTime = new Date(CURRENT_BUILD_TIMESTAMP).getTime();
+
+            // If GitHub APK is newer than local app build time
+            if (assetTime > buildTime && isMounted) {
+              setUpdateInfo({
+                latestVersion: 'Latest Build',
+                releaseNotes: ghData.body || 'New features, performance enhancements, and bug fixes.',
+                downloadUrl: apkAsset.browser_download_url || 'https://github.com/Anjan-Kumar-Sahoo/Secure-Save/releases/latest/download/securesave.apk',
+              });
+              setIsOpen(true);
+            }
+          }
         }
       } catch (err) {
-        // Silent failure: network errors should not interrupt normal app usage
-        console.debug('Update check skipped or offline:', err);
+        console.debug('GitHub release check offline or rate limited:', err);
       }
     };
 
-    // Run check after a short delay on mount
-    const timer = setTimeout(checkVersion, 1500);
+    // Run check after 1 second on mount
+    const timer = setTimeout(checkVersion, 1000);
     return () => {
       isMounted = false;
       clearTimeout(timer);
