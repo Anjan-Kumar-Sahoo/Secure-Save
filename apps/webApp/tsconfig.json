@@ -15,7 +15,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@secure-save/shared-types": ["../../packages/shared-types/src/index.ts"]
+    }
   },
   "include": ["src", "vite.config.ts", "capacitor.config.ts"],
   "exclude": ["node_modules", "dist"]
