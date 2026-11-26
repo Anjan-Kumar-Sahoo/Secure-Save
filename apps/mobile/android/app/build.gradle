@@ -1,5 +1,15 @@
 apply plugin: 'com.android.application'
 
+def getVersionCodeFromProp = { ->
+    def code = project.hasProperty('versionCode') ? project.property('versionCode').toInteger() : 3
+    return code
+}
+
+def getVersionNameFromProp = { ->
+    def name = project.hasProperty('versionName') ? project.property('versionName').toString() : "1.2.0"
+    return name
+}
+
 android {
     namespace "com.securesave.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +17,8 @@ android {
         applicationId "com.securesave.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode getVersionCodeFromProp()
+        versionName getVersionNameFromProp()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,9 +26,26 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    signingConfigs {
+        release {
+            def keystoreFile = file('../release-key.jks')
+            if (keystoreFile.exists()) {
+                storeFile keystoreFile
+                storePassword "securesave2026"
+                keyAlias "securesave"
+                keyPassword "securesave2026"
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            // Debug builds use default signing
+        }
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

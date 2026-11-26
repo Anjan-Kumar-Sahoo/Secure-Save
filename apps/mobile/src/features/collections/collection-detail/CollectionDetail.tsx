@@ -18,6 +18,8 @@ import {
   FolderOpen,
   Eye,
   Check,
+  Upload,
+  Download,
 } from 'lucide-react';
 import api, { getApiErrorMessage } from '../../../services/api';
 import { VaultCrypto } from '../../../utils/vaultCrypto';
@@ -58,6 +60,12 @@ export const CollectionDetail: React.FC = () => {
   const [deleteConfirmItemId, setDeleteConfirmItemId] = React.useState<string | null>(null);
   const [deleteConfirmCollection, setDeleteConfirmCollection] = React.useState(false);
   const [formError, setFormError] = React.useState('');
+  const [selectedFile, setSelectedFile] = React.useState<{
+    name: string;
+    size: string;
+    dataUrl: string;
+  } | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Fetch parent collection details
   const { data: collection, isLoading: isLoadingCollection } = useQuery({
@@ -108,32 +116,64 @@ export const CollectionDetail: React.FC = () => {
   const handleOpenAdd = (type: ItemType) => {
     setSelectedItemType(type);
     setFormError('');
+    setSelectedFile(null);
     reset({ title: '', content: '', notes: '' });
     setIsAddModalOpen(true);
   };
 
-  const onSubmitItem = async (formData: { title: string; content: string; notes: string }) => {
-    setFormError('');
-    if (!formData.title.trim()) {
-      setFormError('Item title is required.');
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setFormError('File size exceeds 10MB limit.');
       return;
     }
-    if (!formData.content.trim()) {
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedFile({
+        name: file.name,
+        size: `${(file.size / 1024).toFixed(1)} KB`,
+        dataUrl: reader.result as string,
+      });
+      setFormError('');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onSubmitItem = async (formData: { title: string; content: string; notes: string }) => {
+    setFormError('');
+    const finalTitle = formData.title.trim() || selectedFile?.name || '';
+    if (!finalTitle) {
+      setFormError('Item title or file is required.');
+      return;
+    }
+
+    if (selectedItemType === 'file' && !selectedFile && !formData.content.trim()) {
+      setFormError('Please select a file to upload or enter file contents.');
+      return;
+    }
+
+    if (selectedItemType === 'text' && !formData.content.trim()) {
       setFormError('Content or notes cannot be empty.');
       return;
     }
 
     try {
       const payloadToEncrypt: DecryptedItemData = {
-        content: formData.content.trim(),
+        content: formData.content.trim() || (selectedFile ? `Attached file: ${selectedFile.name}` : ''),
         notes: (formData.notes || '').trim(),
+        fileName: selectedFile?.name,
+        fileSize: selectedFile?.size,
+        mediaBase64: selectedFile?.dataUrl,
       };
 
       const encryptedPayload = await VaultCrypto.encrypt(payloadToEncrypt);
 
       await api.post(`/collections/${collectionId}/items`, {
         itemType: selectedItemType,
-        title: formData.title.trim(),
+        title: finalTitle,
         encryptedPayload,
         encryptionVersion: '1',
       });
@@ -141,6 +181,7 @@ export const CollectionDetail: React.FC = () => {
       await queryClient.invalidateQueries({ queryKey: ['collection-items', collectionId] });
       await queryClient.invalidateQueries({ queryKey: ['vault-collections'] });
       setIsAddModalOpen(false);
+      setSelectedFile(null);
     } catch (err) {
       setFormError(getApiErrorMessage(err, 'Failed to save item.'));
     }
@@ -243,7 +284,7 @@ export const CollectionDetail: React.FC = () => {
               )}
             </div>
 
-            {/* Quick Add Action Buttons (Section 16.2) */}
+            {/* Quick Add Action Buttons */}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => handleOpenAdd('text')}
@@ -253,18 +294,11 @@ export const CollectionDetail: React.FC = () => {
                 <span>Text Note</span>
               </button>
               <button
-                onClick={() => handleOpenAdd('image')}
-                className="btn-secondary text-xs py-2 px-3"
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span>Photo</span>
-              </button>
-              <button
                 onClick={() => handleOpenAdd('file')}
                 className="btn-secondary text-xs py-2 px-3"
               >
                 <File className="w-3.5 h-3.5" />
-                <span>Document</span>
+                <span>Files</span>
               </button>
             </div>
           </div>
@@ -281,7 +315,7 @@ export const CollectionDetail: React.FC = () => {
             <FolderOpen className="w-12 h-12 text-vault-muted mx-auto mb-3 opacity-60" />
             <h3 className="font-display font-bold text-base text-vault-text">No Items in this Space</h3>
             <p className="text-xs text-vault-muted mt-1 leading-relaxed">
-              Add your confidential notes, documents, or memory items using the buttons above.
+              Add your confidential notes, documents, or files using the buttons above.
             </p>
           </div>
         ) : (
@@ -358,25 +392,45 @@ export const CollectionDetail: React.FC = () => {
             )}
 
             <form onSubmit={handleSubmit(onSubmitItem)} className="space-y-4">
+              {selectedItemType === 'file' && (
+                <div>
+                  <label className="block text-xs font-semibold text-vault-muted mb-1">
+                    Select File from Device *
+                  </label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="block w-full text-xs text-vault-muted file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-vault-surface/80 file:text-vault-text hover:file:bg-vault-surface cursor-pointer border border-vault-borderSubtle rounded-xl p-2 bg-vault-bg"
+                  />
+                  {selectedFile && (
+                    <p className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{selectedFile.name} ({selectedFile.size}) ready for encrypted upload</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-vault-muted mb-1">
-                  Item Title *
+                  Item Title {selectedItemType === 'file' ? '(Defaults to file name)' : '*'}
                 </label>
                 <input
-                  {...register('title', { required: true })}
-                  placeholder="e.g. WiFi Passwords, Passport Scan Note, Meeting Memo"
+                  {...register('title')}
+                  placeholder={selectedItemType === 'file' ? 'Optional custom title' : 'e.g. WiFi Passwords, Tax Document, Meeting Memo'}
                   className="input-vault"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-vault-muted mb-1">
-                  {selectedItemType === 'text' ? 'Encrypted Note Content *' : 'Description / Content *'}
+                  {selectedItemType === 'text' ? 'Encrypted Note Content *' : 'Description / Content (Optional)'}
                 </label>
                 <textarea
-                  {...register('content', { required: true })}
-                  rows={5}
-                  placeholder="Enter sensitive contents to be encrypted with AES-256-GCM..."
+                  {...register('content')}
+                  rows={selectedItemType === 'file' ? 3 : 5}
+                  placeholder={selectedItemType === 'file' ? 'Optional description or notes about this file...' : 'Enter sensitive contents to be encrypted with AES-256-GCM...'}
                   className="input-vault"
                 />
               </div>
@@ -436,6 +490,28 @@ export const CollectionDetail: React.FC = () => {
               <div className="p-4 rounded-xl bg-vault-bg border border-vault-borderSubtle text-xs sm:text-sm text-vault-text whitespace-pre-wrap leading-relaxed font-sans">
                 {viewingItem.decrypted?.content || 'No content.'}
               </div>
+
+              {viewingItem.decrypted?.fileName && viewingItem.decrypted?.mediaBase64 && (
+                <div className="p-3 rounded-xl bg-vault-surface/40 border border-vault-borderSubtle flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <File className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-vault-text truncate">{viewingItem.decrypted.fileName}</p>
+                      {viewingItem.decrypted.fileSize && (
+                        <p className="text-[10px] text-vault-muted">{viewingItem.decrypted.fileSize}</p>
+                      )}
+                    </div>
+                  </div>
+                  <a
+                    href={viewingItem.decrypted.mediaBase64}
+                    download={viewingItem.decrypted.fileName}
+                    className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download</span>
+                  </a>
+                </div>
+              )}
 
               {viewingItem.decrypted?.notes && (
                 <div className="text-xs text-vault-muted">
