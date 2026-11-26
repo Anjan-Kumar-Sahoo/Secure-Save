@@ -295,9 +295,9 @@ export const CollectionDetail: React.FC = () => {
               </button>
               <button
                 onClick={() => handleOpenAdd('file')}
-                className="btn-secondary text-xs py-2 px-3"
+                className="btn-primary text-xs py-2 px-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500"
               >
-                <File className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>Files</span>
               </button>
             </div>

@@ -92,6 +92,20 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Mobile App Version & Update Information
+app.get('/api/app/version', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      latestVersion: process.env.APP_LATEST_VERSION || '1.2.0',
+      versionCode: process.env.APP_VERSION_CODE ? parseInt(process.env.APP_VERSION_CODE) : 3,
+      releaseNotes: process.env.APP_RELEASE_NOTES || 'Performance enhancements and bug fixes.',
+      downloadUrl: process.env.APP_DOWNLOAD_URL || 'https://github.com/Anjan-Kumar-Sahoo/Secure-Save/releases/latest/download/securesave.apk',
+      mandatory: process.env.APP_MANDATORY_UPDATE === 'true',
+    },
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/cards', cardRoutes);
 app.use('/api/banks', bankRoutes);

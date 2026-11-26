@@ -4,12 +4,13 @@
 
 Secure Save is a personal digital vault application that allows authenticated users to securely store and manage sensitive information including:
 
-- Debit cards and credit cards
+- Debit cards and credit cards (with complete cardholder name, masked/revealed card number, expiry, and CVV)
 - Passwords and login credentials
-- Bank account details
+- Bank account details (account number, IFSC, routing)
+- Universal files of any type (PDFs, documents, media, archives up to 10MB client-side encrypted)
 - Personal notes and text documents
-- Images, videos, and audio recordings
 - Custom collections organized through user-defined titles
+- In-app automatic update notification for Android APK releases
 
 ## Technology Stack
 

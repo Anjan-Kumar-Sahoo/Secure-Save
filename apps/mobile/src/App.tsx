@@ -10,10 +10,12 @@ import { PasswordListing } from './features/passwords/PasswordListing';
 import { CollectionsListing } from './features/collections/CollectionsListing';
 import { CollectionDetail } from './features/collections/collection-detail/CollectionDetail';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AppUpdateModal } from './components/AppUpdateModal';
 
 function App() {
   return (
     <div className="app-shell text-vault-text">
+      <AppUpdateModal />
       <Routes>
         {/* Public Authentication Routes */}
         <Route path="/login" element={<Login />} />

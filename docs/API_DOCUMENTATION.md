@@ -723,6 +723,30 @@ __Secure-sid= eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
+## Mobile App Version & Distribution
+
+### GET /api/app/version
+
+**Description:** Returns current production release version metadata and direct APK distribution links for mobile clients.
+
+**Request:** `GET /api/app/version` (Public, no auth required)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "latestVersion": "1.2.0",
+    "versionCode": 3,
+    "releaseNotes": "Universal file vault attachments, cardholder & expiry fix, and in-app update checks.",
+    "downloadUrl": "https://github.com/Anjan-Kumar-Sahoo/Secure-Save/releases/latest/download/securesave.apk",
+    "mandatory": false
+  }
+}
+```
+
+---
+
 ## OpenAPI/Swagger Documentation
 
 All endpoints documented with OpenAPI 3.0 schema available at:

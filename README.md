@@ -31,7 +31,8 @@
 * 💳 **Payment & ID Cards:** Store card numbers, CVVs, expiration dates, and cardholder details with quick clipboard copying.
 * 🔑 **Passwords & Credentials:** Manage sensitive usernames, passwords, notes, and OTP recovery credentials.
 * 🏦 **Bank Accounts:** Securely keep branch details, IFSC codes, routing numbers, and linked card references.
-* 📁 **Encrypted Collections:** Custom vaults for confidential files, private notes, and categorized personal records.
+* 📁 **Universal Encrypted Files & Collections:** Store any file type (PDF, images, archives, docs up to 10MB) client-side encrypted with instant decrypted downloads, plus private notes and custom categorizations.
+* 📲 **In-App Update System:** Mobile app automatically detects new releases on startup and allows single-tap APK updates.
 
 ---
 
