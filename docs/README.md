@@ -138,6 +138,35 @@ npm run dev
 npm run dev
 ```
 
+### 6. Android Release Assembly
+
+```bash
+# Build shared types, mobile bundle, and sync Capacitor
+npm run build --workspace=@secure-save/shared-types
+npm run build:mobile
+cd apps/mobile
+npx cap sync android
+
+# Assemble release APK (versionCode 3, versionName 1.2.0)
+cd android
+.\gradlew.bat assembleRelease -PversionCode=3 -PversionName="1.2.0"
+```
+
+The release APK is generated at:
+`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`
+
+---
+
+## Zero-Knowledge Architecture & Key Management (v1.2.0)
+
+Secure Save implements a zero-knowledge cryptographic architecture:
+1. **Master Password & KDF**: Derived into a 256-bit Key Encryption Key (KEK) using PBKDF2-HMAC-SHA256 with **600,000 iterations** (OWASP standard).
+2. **Per-User DEK**: Each vault uses a distinct 256-bit Data Encryption Key (DEK) wrapped with the user's KEK. The Master Password and raw DEK are NEVER transmitted to or stored on the server.
+3. **Cryptographic Recovery Key**: Each user generates a 192-bit Recovery Key (`RCV-XXXX-XXXX...`). The DEK is independently wrapped by a Recovery KEK derived from this secret, allowing password recovery with ZERO data loss.
+4. **Authenticated Additional Data (AAD)**: AES-256-GCM ciphertexts bind record metadata (`userId`, `recordId`, `recordType`, `version`) to prevent ciphertext swapping or tampering.
+5. **Personal Vault Credentials**: For personal vault setup and offline recovery records, see the untracked file `vault-credentials.txt` in the root workspace.
+
+
 ### 6. Android APK Generation
 
 ```bash

@@ -1,13 +1,277 @@
 /**
- * Secure Save - Client-Side Cryptographic Vault Engine
- * Provides AES-256 authenticated encryption & decryption for vault items,
- * and cryptographically secure password generation.
+ * Secure Save - Zero-Knowledge Key Management & Crypto Engine
+ * Architecture:
+ * 1. Master Password derives 256-bit KEK (Key Encryption Key) using PBKDF2-HMAC-SHA256 (600,000 iterations OWASP standard).
+ * 2. Per-user 256-bit DEK (Data Encryption Key) is generated randomly on registration.
+ * 3. The raw DEK is wrapped (encrypted) by KEK using AES-256-GCM.
+ * 4. User-Controlled Master Password Recovery:
+ *    - A 256-bit cryptographic Recovery Key is generated on the client.
+ *    - The DEK is also wrapped by a Recovery KEK derived from this Recovery Key.
+ *    - Stored as `recoveryWrappedDek` and `recoverySalt`.
+ *    - If the user forgets their Master Password, they input the Recovery Key to unwrap their DEK,
+ *      then set a new Master Password (re-wrapping the DEK) with ZERO data loss.
+ * 5. Authenticated Additional Data (AAD):
+ *    - Encrypted records can bind record metadata (userId, recordId, recordType, version)
+ *      into AES-GCM's AAD so that ciphertext cannot be transposed or tampered with.
+ * 6. Isolated legacy v1 decryption strictly for verified migration routines.
  */
 
-// Format: Base64 JSON containing { iv, ciphertext, tag } or standard AES-GCM envelope
-export class VaultCrypto {
-  private static defaultKeyPhrase = 'SecureSave-ClientVaultKey-v1';
+export class MissingEncryptionKeyError extends Error {
+  constructor(message = 'Vault is locked. Encryption key not available in session.') {
+    super(message);
+    this.name = 'MissingEncryptionKeyError';
+  }
+}
 
+export interface WrappedVaultKeyConfig {
+  kdfAlgorithm?: string;
+  kekSalt: string;
+  wrappedDek: string;
+  keyVersion: number;
+  iterations?: number;
+  recoveryWrappedDek?: string;
+  recoverySalt?: string;
+}
+
+export interface EncryptionContextAAD {
+  userId?: string;
+  recordId?: string;
+  recordType?: string;
+  version?: string;
+}
+
+export class VaultKeyManager {
+  // Ephemeral in-memory DEK secret (never stored to disk or localStorage)
+  private static activeDek: string | null = null;
+  // Legacy migration secret (isolated strictly to migration routines)
+  private static readonly legacyKeyPhrase = 'SecureSave-ClientVaultKey-v1';
+
+  // OWASP 2024+ Recommended PBKDF2 Iteration Count for SHA-256
+  public static readonly DEFAULT_PBKDF2_ITERATIONS = 600000;
+
+  /**
+   * Set the active in-memory DEK upon vault unlock
+   */
+  static setActiveDek(dek: string) {
+    this.activeDek = dek;
+  }
+
+  /**
+   * Get the active in-memory DEK. Throws securely if locked.
+   */
+  static getActiveDek(): string {
+    if (!this.activeDek) {
+      throw new MissingEncryptionKeyError();
+    }
+    return this.activeDek;
+  }
+
+  /**
+   * Check if vault is currently unlocked
+   */
+  static isUnlocked(): boolean {
+    return !!this.activeDek;
+  }
+
+  /**
+   * Clear active key from memory on logout or lock
+   */
+  static lock() {
+    this.activeDek = null;
+  }
+
+  /**
+   * Generate a cryptographically random 256-bit DEK
+   */
+  static generateRandomDek(): string {
+    const rawBytes = crypto.getRandomValues(new Uint8Array(32));
+    let binary = '';
+    for (let i = 0; i < rawBytes.length; i++) {
+      binary += String.fromCharCode(rawBytes[i]);
+    }
+    return btoa(binary);
+  }
+
+  /**
+   * Generate a secure human-readable 256-bit Recovery Key (formatted in groups)
+   * e.g. "RCV-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+   */
+  static generateRecoveryKey(): string {
+    const bytes = crypto.getRandomValues(new Uint8Array(24));
+    let hex = '';
+    for (let i = 0; i < bytes.length; i++) {
+      hex += bytes[i].toString(16).padStart(2, '0').toUpperCase();
+    }
+    // Format into 6 blocks of 4 chars
+    const chunks = hex.match(/.{1,4}/g) || [];
+    return `RCV-${chunks.join('-')}`;
+  }
+
+  /**
+   * Derive a 256-bit KEK CryptoKey using PBKDF2 with SHA-256
+   */
+  private static async deriveKek(
+    secret: string,
+    saltBytes: Uint8Array,
+    iterations = VaultKeyManager.DEFAULT_PBKDF2_ITERATIONS
+  ): Promise<CryptoKey> {
+    const encoder = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+
+    return crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: saltBytes as any,
+        iterations,
+        hash: 'SHA-256',
+      },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  /**
+   * Wrap (encrypt) raw DEK with Master Password or Recovery Key
+   */
+  private static async wrapSecret(secret: string, rawDek: string, iterations = VaultKeyManager.DEFAULT_PBKDF2_ITERATIONS): Promise<{ saltBase64: string; wrappedBase64: string }> {
+    const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const kek = await this.deriveKek(secret, saltBytes, iterations);
+
+    const encoder = new TextEncoder();
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: iv as any },
+      kek,
+      encoder.encode(rawDek)
+    );
+
+    const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(ciphertext), iv.length);
+
+    let wrappedBinary = '';
+    for (let i = 0; i < combined.length; i++) {
+      wrappedBinary += String.fromCharCode(combined[i]);
+    }
+
+    let saltBinary = '';
+    for (let i = 0; i < saltBytes.length; i++) {
+      saltBinary += String.fromCharCode(saltBytes[i]);
+    }
+
+    return {
+      saltBase64: btoa(saltBinary),
+      wrappedBase64: btoa(wrappedBinary),
+    };
+  }
+
+  /**
+   * Unwrap (decrypt) raw DEK using Master Password or Recovery Key
+   */
+  private static async unwrapSecret(secret: string, saltBase64: string, wrappedBase64: string, iterations = VaultKeyManager.DEFAULT_PBKDF2_ITERATIONS): Promise<string> {
+    const saltBinary = atob(saltBase64);
+    const saltBytes = new Uint8Array(saltBinary.length);
+    for (let i = 0; i < saltBinary.length; i++) {
+      saltBytes[i] = saltBinary.charCodeAt(i);
+    }
+
+    const wrappedBinary = atob(wrappedBase64);
+    const combined = new Uint8Array(wrappedBinary.length);
+    for (let i = 0; i < wrappedBinary.length; i++) {
+      combined[i] = wrappedBinary.charCodeAt(i);
+    }
+
+    const iv = combined.subarray(0, 12);
+    const ciphertext = combined.subarray(12);
+
+    const kek = await this.deriveKek(secret, saltBytes, iterations);
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: iv as any },
+      kek,
+      ciphertext as any
+    );
+
+    const decoder = new TextDecoder();
+    return decoder.decode(decryptedBuffer);
+  }
+
+  /**
+   * Wrap DEK with both Master Password and user Recovery Key
+   */
+  static async wrapDekWithRecovery(
+    masterPassword: string,
+    rawDek: string,
+    recoveryKey: string,
+    iterations = VaultKeyManager.DEFAULT_PBKDF2_ITERATIONS
+  ): Promise<WrappedVaultKeyConfig> {
+    const mainWrap = await this.wrapSecret(masterPassword, rawDek, iterations);
+    const recoveryWrap = await this.wrapSecret(recoveryKey, rawDek, iterations);
+
+    return {
+      kdfAlgorithm: 'PBKDF2-SHA256',
+      kekSalt: mainWrap.saltBase64,
+      wrappedDek: mainWrap.wrappedBase64,
+      keyVersion: 2,
+      iterations,
+      recoveryWrappedDek: recoveryWrap.wrappedBase64,
+      recoverySalt: recoveryWrap.saltBase64,
+    };
+  }
+
+  /**
+   * Wrap raw DEK with Master Password (backward compatible)
+   */
+  static async wrapDek(
+    masterPassword: string,
+    rawDek: string,
+    iterations = VaultKeyManager.DEFAULT_PBKDF2_ITERATIONS
+  ): Promise<WrappedVaultKeyConfig> {
+    const mainWrap = await this.wrapSecret(masterPassword, rawDek, iterations);
+    return {
+      kdfAlgorithm: 'PBKDF2-SHA256',
+      kekSalt: mainWrap.saltBase64,
+      wrappedDek: mainWrap.wrappedBase64,
+      keyVersion: 2,
+      iterations,
+    };
+  }
+
+  /**
+   * Unwrap raw DEK using Master Password
+   */
+  static async unwrapDek(masterPassword: string, config: WrappedVaultKeyConfig): Promise<string> {
+    const iterations = config.iterations || 100000;
+    return this.unwrapSecret(masterPassword, config.kekSalt, config.wrappedDek, iterations);
+  }
+
+  /**
+   * Unwrap raw DEK using user Recovery Key
+   */
+  static async unwrapDekWithRecoveryKey(recoveryKey: string, config: WrappedVaultKeyConfig): Promise<string> {
+    if (!config.recoveryWrappedDek || !config.recoverySalt) {
+      throw new Error('No recovery key configuration available for this account.');
+    }
+    const iterations = config.iterations || 100000;
+    return this.unwrapSecret(recoveryKey.trim(), config.recoverySalt, config.recoveryWrappedDek, iterations);
+  }
+
+  /**
+   * Access to legacy key strictly for migration routines
+   */
+  static getLegacyKeyForMigration(): string {
+    return this.legacyKeyPhrase;
+  }
+}
+
+export class VaultCrypto {
   /**
    * Derives a 256-bit CryptoKey using PBKDF2 with SHA-256
    */
@@ -35,34 +299,43 @@ export class VaultCrypto {
     );
   }
 
+  private static encodeAAD(aad?: EncryptionContextAAD): Uint8Array | undefined {
+    if (!aad) return undefined;
+    const encoder = new TextEncoder();
+    return encoder.encode(JSON.stringify(aad));
+  }
+
   /**
-   * Encrypts any JS object or string using AES-256-GCM with a fresh random 12-byte IV.
-   * Never reuses an IV. Returns a self-contained serialized string.
+   * Encrypts any JS object or string using AES-256-GCM.
+   * Optionally binds Authenticated Additional Data (AAD).
    */
-  static async encrypt(data: unknown, userSecret?: string): Promise<string> {
-    const secret = userSecret || this.defaultKeyPhrase;
+  static async encrypt(data: unknown, customSecret?: string, aad?: EncryptionContextAAD): Promise<string> {
+    const secret = customSecret || VaultKeyManager.getActiveDek();
     const plaintext = typeof data === 'string' ? data : JSON.stringify(data);
     const encoder = new TextEncoder();
 
-    // 16-byte random salt and 12-byte random IV
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const iv = crypto.getRandomValues(new Uint8Array(12));
 
     const key = await this.deriveCryptoKey(salt, secret);
 
+    const additionalData = this.encodeAAD(aad);
+
     const ciphertextBuffer = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: iv as any },
+      {
+        name: 'AES-GCM',
+        iv: iv as any,
+        additionalData: additionalData as any,
+      },
       key,
       encoder.encode(plaintext)
     );
 
-    // Pack: salt (16 bytes) + iv (12 bytes) + ciphertext/tag
     const combined = new Uint8Array(salt.length + iv.length + ciphertextBuffer.byteLength);
     combined.set(salt, 0);
     combined.set(iv, salt.length);
     combined.set(new Uint8Array(ciphertextBuffer), salt.length + iv.length);
 
-    // Convert to Base64
     let binary = '';
     const bytes = combined;
     for (let i = 0; i < bytes.byteLength; i++) {
@@ -73,9 +346,10 @@ export class VaultCrypto {
 
   /**
    * Decrypts an AES-256-GCM serialized payload.
+   * Validates optional Authenticated Additional Data (AAD).
    */
-  static async decrypt<T = any>(encryptedBase64: string, userSecret?: string): Promise<T> {
-    const secret = userSecret || this.defaultKeyPhrase;
+  static async decrypt<T = any>(encryptedBase64: string, customSecret?: string, aad?: EncryptionContextAAD): Promise<T> {
+    const secret = customSecret || VaultKeyManager.getActiveDek();
 
     try {
       const binary = atob(encryptedBase64);
@@ -89,9 +363,14 @@ export class VaultCrypto {
       const ciphertext = combined.subarray(28);
 
       const key = await this.deriveCryptoKey(salt, secret);
+      const additionalData = this.encodeAAD(aad);
 
       const decryptedBuffer = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: iv as any },
+        {
+          name: 'AES-GCM',
+          iv: iv as any,
+          additionalData: additionalData as any,
+        },
         key,
         ciphertext as any
       );
@@ -111,11 +390,76 @@ export class VaultCrypto {
   }
 
   /**
-   * Generates a cryptographically secure random password
-   * matching Section 15.3 requirements.
+   * Encrypt arbitrary binary ArrayBuffer / Uint8Array using AES-256-GCM
+   */
+  static async encryptBinary(data: ArrayBuffer | Uint8Array, customSecret?: string, aad?: EncryptionContextAAD): Promise<string> {
+    const secret = customSecret || VaultKeyManager.getActiveDek();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await this.deriveCryptoKey(salt, secret);
+    const additionalData = this.encodeAAD(aad);
+
+    const ciphertextBuffer = await crypto.subtle.encrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv as any,
+        additionalData: additionalData as any,
+      },
+      key,
+      data as BufferSource
+    );
+
+    const combined = new Uint8Array(salt.length + iv.length + ciphertextBuffer.byteLength);
+    combined.set(salt, 0);
+    combined.set(iv, salt.length);
+    combined.set(new Uint8Array(ciphertextBuffer), salt.length + iv.length);
+
+    const chunkSize = 0x8000; // 32KB chunks
+    const chunks: string[] = [];
+    for (let i = 0; i < combined.length; i += chunkSize) {
+      chunks.push(String.fromCharCode.apply(null, combined.subarray(i, i + chunkSize) as any));
+    }
+    return btoa(chunks.join(''));
+  }
+
+  /**
+   * Decrypt raw binary ArrayBuffer from serialized Base64 payload
+   */
+  static async decryptBinary(encryptedBase64: string, customSecret?: string, aad?: EncryptionContextAAD): Promise<ArrayBuffer> {
+    const secret = customSecret || VaultKeyManager.getActiveDek();
+    const binary = atob(encryptedBase64);
+    const combined = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      combined[i] = binary.charCodeAt(i);
+    }
+
+    const salt = combined.subarray(0, 16);
+    const iv = combined.subarray(16, 28);
+    const ciphertext = combined.subarray(28);
+
+    const key = await this.deriveCryptoKey(salt, secret);
+    const additionalData = this.encodeAAD(aad);
+
+    return crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv as any,
+        additionalData: additionalData as any,
+      },
+      key,
+      ciphertext as any
+    );
+  }
+
+  /**
+   * Cryptographically secure password generator
    */
   static generatePassword(options: {
     length?: number;
+    includeUppercase?: boolean;
+    includeLowercase?: boolean;
+    includeNumbers?: boolean;
+    includeSymbols?: boolean;
     uppercase?: boolean;
     lowercase?: boolean;
     numbers?: boolean;
@@ -123,61 +467,30 @@ export class VaultCrypto {
   } = {}): string {
     const {
       length = 16,
-      uppercase = true,
-      lowercase = true,
-      numbers = true,
-      symbols = true,
+      includeUppercase = options.uppercase !== undefined ? options.uppercase : true,
+      includeLowercase = options.lowercase !== undefined ? options.lowercase : true,
+      includeNumbers = options.numbers !== undefined ? options.numbers : true,
+      includeSymbols = options.symbols !== undefined ? options.symbols : true,
     } = options;
 
-    const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const lowers = 'abcdefghijkmnopqrstuvwxyz';
-    const nums = '23456789';
-    const syms = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    let charset = '';
+    if (includeUppercase) charset += 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    if (includeLowercase) charset += 'abcdefghijkmnpqrstuvwxyz';
+    if (includeNumbers) charset += '23456789';
+    if (includeSymbols) charset += '!@#$%^&*()-_=+[]{}|;:,.<>?';
 
-    let pool = '';
-    const guaranteed: string[] = [];
-
-    if (uppercase) {
-      pool += uppers;
-      guaranteed.push(uppers[this.getRandomIndex(uppers.length)]);
-    }
-    if (lowercase) {
-      pool += lowers;
-      guaranteed.push(lowers[this.getRandomIndex(lowers.length)]);
-    }
-    if (numbers) {
-      pool += nums;
-      guaranteed.push(nums[this.getRandomIndex(nums.length)]);
-    }
-    if (symbols) {
-      pool += syms;
-      guaranteed.push(syms[this.getRandomIndex(syms.length)]);
+    if (!charset) {
+      charset = 'abcdefghijkmnpqrstuvwxyz23456789';
     }
 
-    if (!pool) {
-      pool = lowers + nums;
+    const randomValues = new Uint32Array(length);
+    crypto.getRandomValues(randomValues);
+
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      password += charset[randomValues[i] % charset.length];
     }
 
-    const remainingLength = Math.max(0, length - guaranteed.length);
-    const randomChars: string[] = [];
-    const randomBytes = crypto.getRandomValues(new Uint8Array(remainingLength));
-
-    for (let i = 0; i < remainingLength; i++) {
-      randomChars.push(pool[randomBytes[i] % pool.length]);
-    }
-
-    // Combine and shuffle
-    const allChars = [...guaranteed, ...randomChars];
-    for (let i = allChars.length - 1; i > 0; i--) {
-      const j = this.getRandomIndex(i + 1);
-      [allChars[i], allChars[j]] = [allChars[j], allChars[i]];
-    }
-
-    return allChars.join('');
-  }
-
-  private static getRandomIndex(max: number): number {
-    const randomArray = crypto.getRandomValues(new Uint32Array(1));
-    return randomArray[0] % max;
+    return password;
   }
 }

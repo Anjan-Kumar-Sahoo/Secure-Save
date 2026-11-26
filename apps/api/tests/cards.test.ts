@@ -94,6 +94,45 @@ describe('Cards API', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.card.title).toBe('Sapphire Preferred');
     });
+
+    it('should support exactly one card and multiple cards retrieval', async () => {
+      // 1. Exactly one card
+      const createRes1 = await request(app)
+        .post('/api/cards')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          title: 'Primary Visa Card',
+          encryptedPayload: 'payload-single-card',
+          encryptionVersion: '1',
+        });
+      expect(createRes1.status).toBe(200);
+
+      const singleListRes = await request(app)
+        .get('/api/cards')
+        .set('Authorization', `Bearer ${validToken}`);
+
+      expect(singleListRes.status).toBe(200);
+      expect(singleListRes.body.data.cards.length).toBe(1);
+      expect(singleListRes.body.data.cards[0].title).toBe('Primary Visa Card');
+
+      // 2. Multiple cards
+      const createRes2 = await request(app)
+        .post('/api/cards')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          title: 'Secondary Mastercard',
+          encryptedPayload: 'payload-second-card',
+          encryptionVersion: '1',
+        });
+      expect(createRes2.status).toBe(200);
+
+      const multiListRes = await request(app)
+        .get('/api/cards')
+        .set('Authorization', `Bearer ${validToken}`);
+
+      expect(multiListRes.status).toBe(200);
+      expect(multiListRes.body.data.cards.length).toBe(2);
+    });
   });
 
   describe('GET /api/cards/:id', () => {

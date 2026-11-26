@@ -17,6 +17,11 @@ coverage/
 !.env.example
 !.env.*.example
 
+# Android Keystores & Signing Secrets
+*.jks
+*.keystore
+keystore.properties
+
 # Logs and debug output
 *.log
 logs/
@@ -37,3 +42,9 @@ logs/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Vault credentials and local secrets
+vault-credentials.txt
+*.credentials.txt
+*secret*.txt
+

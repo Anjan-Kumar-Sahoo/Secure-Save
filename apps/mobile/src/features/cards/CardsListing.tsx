@@ -19,6 +19,7 @@ import {
   Lock,
 } from 'lucide-react';
 import api, { getApiErrorMessage } from '../../services/api';
+import { cardService } from '../../services/card.service';
 import { VaultCrypto } from '../../utils/vaultCrypto';
 
 export interface DecryptedCardData {
@@ -59,31 +60,21 @@ export const CardsListing: React.FC = () => {
   const { data: cards = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['cards-list'],
     queryFn: async () => {
-      const res = await api.get('/cards');
-      const rawCards: CardRecord[] = res.data?.data?.cards || [];
-
-      // Decrypt each card payload
-      const decryptedCards = await Promise.all(
-        rawCards.map(async (card) => {
-          try {
-            const decrypted = await VaultCrypto.decrypt<DecryptedCardData>(card.encryptedPayload);
-            return { ...card, decrypted };
-          } catch (err) {
-            console.error('Failed to decrypt card:', card._id, err);
-            return {
-              ...card,
-              decrypted: {
-                cardholderName: 'Encrypted',
-                cardNumber: '•••• •••• •••• ••••',
-                expiry: '••/••',
-                cvv: '•••',
-                cardType: 'General',
-              },
-            };
-          }
-        })
-      );
-      return decryptedCards;
+      const allCards = await cardService.getAll();
+      return allCards.map((c) => {
+        const d = c.decrypted as any;
+        return {
+          ...c,
+          decrypted: d ? {
+            cardholderName: d.cardholderName || d.cardHolderName || '',
+            cardNumber: d.cardNumber || '',
+            expiry: d.expiry || (d.expiryMonth ? `${d.expiryMonth}/${d.expiryYear}` : ''),
+            cvv: d.cvv || '',
+            cardType: d.cardType || 'General',
+            notes: d.notes,
+          } : undefined,
+        };
+      });
     },
   });
 
@@ -167,8 +158,9 @@ export const CardsListing: React.FC = () => {
     }
 
     try {
-      const payloadToEncrypt: DecryptedCardData = {
+      const payloadToEncrypt = {
         cardholderName: formData.cardholderName.trim(),
+        cardHolderName: formData.cardholderName.trim(),
         cardNumber: cleanCardNumber,
         expiry: formData.expiry.trim(),
         cvv: formData.cvv.trim(),
@@ -176,21 +168,10 @@ export const CardsListing: React.FC = () => {
         notes: formData.notes.trim(),
       };
 
-      // Client-side AES-256-GCM encryption
-      const encryptedPayload = await VaultCrypto.encrypt(payloadToEncrypt);
-
       if (editingCard) {
-        await api.put(`/cards/${editingCard._id}`, {
-          title: formData.title.trim(),
-          encryptedPayload,
-          encryptionVersion: '1',
-        });
+        await cardService.update(editingCard._id, formData.title, payloadToEncrypt);
       } else {
-        await api.post('/cards', {
-          title: formData.title.trim(),
-          encryptedPayload,
-          encryptionVersion: '1',
-        });
+        await cardService.create(formData.title, payloadToEncrypt);
       }
 
       await queryClient.invalidateQueries({ queryKey: ['cards-list'] });
@@ -205,7 +186,7 @@ export const CardsListing: React.FC = () => {
   // Delete Card
   const handleDeleteCard = async (id: string) => {
     try {
-      await api.delete(`/cards/${id}`);
+      await cardService.delete(id);
       await queryClient.invalidateQueries({ queryKey: ['cards-list'] });
       await queryClient.invalidateQueries({ queryKey: ['vault-cards'] });
       setDeleteConfirmId(null);

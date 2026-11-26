@@ -54,15 +54,27 @@ jobs:
           fi
           npx cap sync android
 
-      - name: Build Android Debug APK
+      - name: Decode Release Keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.SECURESAVE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > apps/mobile/android/release-key.jks
+          fi
+
+      - name: Build Android Release APK
+        env:
+          SECURESAVE_KEYSTORE_PASSWORD: ${{ secrets.SECURESAVE_KEYSTORE_PASSWORD || 'securesave2026' }}
+          SECURESAVE_KEY_ALIAS: ${{ secrets.SECURESAVE_KEY_ALIAS || 'securesave' }}
+          SECURESAVE_KEY_PASSWORD: ${{ secrets.SECURESAVE_KEY_PASSWORD || 'securesave2026' }}
         run: |
           cd apps/mobile/android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleRelease -PversionCode=${{ github.run_number }} -PversionName="1.1.${{ github.run_number }}" --stacktrace
 
       - name: Copy & Prepare APK
         run: |
-          cp apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk securesave.apk
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk securesave.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4

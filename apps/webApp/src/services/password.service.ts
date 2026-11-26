@@ -1,5 +1,5 @@
 import api from './api';
-import { VaultCrypto } from '../utils/vaultCrypto';
+import { VaultCrypto, VaultKeyManager } from '../utils/vaultCrypto';
 import {
   ApiResponse,
   PasswordRecord,
@@ -17,7 +17,8 @@ export const passwordService = {
     return Promise.all(
       rawPasswords.map(async (item) => {
         try {
-          const decrypted = await VaultCrypto.decrypt<DecryptedPasswordData>(item.encryptedPayload);
+          const customKey = item.encryptionVersion === '2' ? undefined : VaultKeyManager.getLegacyKeyForMigration();
+          const decrypted = await VaultCrypto.decrypt<DecryptedPasswordData>(item.encryptedPayload, customKey);
           return { ...item, decrypted };
         } catch (err) {
           console.error('Failed to decrypt password:', item._id, err);
@@ -48,7 +49,7 @@ export const passwordService = {
 
     const res = await api.post<ApiResponse>('/passwords', {
       encryptedPayload,
-      encryptionVersion: '1',
+      encryptionVersion: '2',
     });
     return res.data;
   },
@@ -68,7 +69,7 @@ export const passwordService = {
 
     const res = await api.put<ApiResponse>(`/passwords/${id}`, {
       encryptedPayload,
-      encryptionVersion: '1',
+      encryptionVersion: '2',
     });
     return res.data;
   },

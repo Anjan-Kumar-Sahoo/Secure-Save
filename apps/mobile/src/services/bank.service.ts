@@ -1,5 +1,5 @@
 import api from './api';
-import { VaultCrypto } from '../utils/vaultCrypto';
+import { VaultCrypto, VaultKeyManager } from '../utils/vaultCrypto';
 import {
   ApiResponse,
   BankRecord,
@@ -14,7 +14,8 @@ export const bankService = {
     return Promise.all(
       rawBanks.map(async (item) => {
         try {
-          const decrypted = await VaultCrypto.decrypt<DecryptedBankData>(item.encryptedPayload);
+          const customKey = item.encryptionVersion === '2' ? undefined : VaultKeyManager.getLegacyKeyForMigration();
+          const decrypted = await VaultCrypto.decrypt<DecryptedBankData>(item.encryptedPayload, customKey);
           return { ...item, decrypted };
         } catch (err) {
           console.error('Failed to decrypt bank account:', item._id, err);
@@ -46,7 +47,7 @@ export const bankService = {
     const res = await api.post<ApiResponse>('/banks', {
       encryptedPayload,
       linkedCardIds,
-      encryptionVersion: '1',
+      encryptionVersion: '2',
     });
     return res.data;
   },
@@ -66,7 +67,7 @@ export const bankService = {
     const res = await api.put<ApiResponse>(`/banks/${id}`, {
       encryptedPayload,
       linkedCardIds,
-      encryptionVersion: '1',
+      encryptionVersion: '2',
     });
     return res.data;
   },
