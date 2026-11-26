@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import api, { getApiErrorMessage } from '../../services/api';
 import { InstallAppButton } from '../../components/InstallAppButton';
+import { VaultKeyManager } from '../../utils/vaultCrypto';
 
 const emailSchema = z.object({
   email: z.string().trim().min(1, 'Email address is required').email('Enter a valid email address'),
@@ -105,6 +106,12 @@ export const Login: React.FC = () => {
 
       const token = response.data?.data?.token;
       if (token) {
+        // Automatically unlock vault using Login PIN
+        await VaultKeyManager.unlockWithPin(
+          activeEmail,
+          data.pin,
+          response.data?.data?.vaultKeyConfiguration
+        );
         setAuth({ email: activeEmail }, token);
         navigate('/dashboard');
       } else {

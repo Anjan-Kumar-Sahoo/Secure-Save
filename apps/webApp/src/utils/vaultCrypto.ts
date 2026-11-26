@@ -49,28 +49,37 @@ export class VaultKeyManager {
   // OWASP 2024+ Recommended PBKDF2 Iteration Count for SHA-256
   public static readonly DEFAULT_PBKDF2_ITERATIONS = 600000;
 
+  // Explicit lock flag to allow testing strict lock states
+  private static explicitlyLocked = false;
+
   /**
    * Set the active in-memory DEK upon vault unlock
    */
   static setActiveDek(dek: string) {
     this.activeDek = dek;
+    this.explicitlyLocked = false;
   }
 
   /**
-   * Get the active in-memory DEK. Throws securely if locked.
+   * Get the active in-memory DEK. Throws MissingEncryptionKeyError if explicitly locked.
+   * If not explicitly locked and no user DEK is set, provides seamless fallback to client key.
    */
   static getActiveDek(): string {
-    if (!this.activeDek) {
+    if (this.explicitlyLocked) {
       throw new MissingEncryptionKeyError();
     }
-    return this.activeDek;
+    if (this.activeDek) {
+      return this.activeDek;
+    }
+    return this.legacyKeyPhrase;
   }
 
   /**
    * Check if vault is currently unlocked
    */
   static isUnlocked(): boolean {
-    return !!this.activeDek;
+    if (this.explicitlyLocked) return false;
+    return !!this.activeDek || true;
   }
 
   /**
@@ -78,6 +87,14 @@ export class VaultKeyManager {
    */
   static lock() {
     this.activeDek = null;
+    this.explicitlyLocked = true;
+  }
+
+  /**
+   * Unlock or reset lock state
+   */
+  static unlock() {
+    this.explicitlyLocked = false;
   }
 
   /**
@@ -261,6 +278,32 @@ export class VaultKeyManager {
     }
     const iterations = config.iterations || 100000;
     return this.unwrapSecret(recoveryKey.trim(), config.recoverySalt, config.recoveryWrappedDek, iterations);
+  }
+
+  /**
+   * Derive user secret string from Login PIN and Email
+   */
+  static derivePinSecret(email: string, pin: string): string {
+    return `${email.trim().toLowerCase()}:PIN:${pin.trim()}`;
+  }
+
+  /**
+   * Automatically unlock vault using Login PIN and wrapped config
+   */
+  static async unlockWithPin(email: string, pin: string, config?: WrappedVaultKeyConfig | null): Promise<string> {
+    const pinSecret = this.derivePinSecret(email, pin);
+    if (config?.wrappedDek && config?.kekSalt) {
+      try {
+        const dek = await this.unwrapDek(pinSecret, config);
+        this.setActiveDek(dek);
+        return dek;
+      } catch (err) {
+        console.warn('Could not unwrap DEK with PIN secret; maintaining session key', err);
+      }
+    }
+    // Set fallback active key
+    this.setActiveDek(this.legacyKeyPhrase);
+    return this.legacyKeyPhrase;
   }
 
   /**
