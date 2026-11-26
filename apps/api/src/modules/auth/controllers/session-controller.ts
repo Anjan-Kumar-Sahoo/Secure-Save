@@ -83,12 +83,7 @@ router.post('/login', [
     res.json({
       success: true,
       message: 'Login successful',
-      data: {
-        token,
-        vaultKeyConfiguration: user.vaultKeyConfiguration || null,
-        userId: user._id,
-        email: user.email,
-      }
+      data: { token }
     });
   } catch (error) {
     next(error);

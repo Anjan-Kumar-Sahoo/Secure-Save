@@ -83,24 +83,6 @@ const deleteCollectionItem = asyncHandler(async (req: any, res: Response) => {
     throw createError(new Error('Item not found'), 'DeleteItem');
   }
 
-  // If this item referenced stored encrypted files, clean up storage and metadata
-  if (item.fileReferences && item.fileReferences.length > 0) {
-    try {
-      const { StoredFile } = await import('../models/file-storage-model');
-      const { fileStorageService } = await import('../services/file-storage-service');
-
-      for (const fileRef of item.fileReferences) {
-        const storedFile = await StoredFile.findOne({ _id: fileRef, userId });
-        if (storedFile) {
-          await fileStorageService.deleteFile(userId, storedFile.storageKey);
-          await StoredFile.deleteOne({ _id: storedFile._id });
-        }
-      }
-    } catch (cleanupErr) {
-      console.warn('Failed to clean up associated stored files for deleted item:', cleanupErr);
-    }
-  }
-
   res.json({
     success: true,
     message: 'Item deleted successfully'

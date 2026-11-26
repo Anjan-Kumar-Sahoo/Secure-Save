@@ -1,14 +1,9 @@
 import express from 'express';
 import { getCollections, createCollection, getCollection, updateCollection, deleteCollection } from './controllers/collection-controller';
 import { getCollectionItems, createCollectionItem, getCollectionItem, updateCollectionItem, deleteCollectionItem } from './controllers/item-controller';
-import { uploadEncryptedFile, downloadEncryptedFile } from './controllers/file-controller';
 import { authenticateToken } from '../auth/middleware/auth-middleware';
 
 const router = express.Router();
-
-// File Storage Routes
-router.post('/files/upload', authenticateToken, uploadEncryptedFile);
-router.get('/files/:fileId/download', authenticateToken, downloadEncryptedFile);
 
 // Collections
 router.get('/', authenticateToken, getCollections);

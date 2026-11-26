@@ -1,5 +1,5 @@
 import api from './api';
-import { VaultCrypto, VaultKeyManager } from '../utils/vaultCrypto';
+import { VaultCrypto } from '../utils/vaultCrypto';
 import {
   ApiResponse,
   CardRecord,
@@ -17,41 +17,19 @@ export const cardService = {
     return Promise.all(
       rawCards.map(async (item) => {
         try {
-          const customKey = item.encryptionVersion === '2' ? undefined : VaultKeyManager.getLegacyKeyForMigration();
-          const decrypted = await VaultCrypto.decrypt<any>(item.encryptedPayload, customKey);
-          // Normalize both naming conventions (cardholderName vs cardHolderName, expiry vs expiryMonth/Year)
-          const expiryVal = decrypted.expiry || (decrypted.expiryMonth ? `${decrypted.expiryMonth}/${decrypted.expiryYear}` : '');
-          const cardholderNameVal = decrypted.cardholderName || decrypted.cardHolderName || '';
-
-          return {
-            ...item,
-            decrypted: {
-              cardholderName: cardholderNameVal,
-              cardHolderName: cardholderNameVal,
-              cardNumber: decrypted.cardNumber || '',
-              expiry: expiryVal,
-              expiryMonth: decrypted.expiryMonth || (expiryVal.includes('/') ? expiryVal.split('/')[0] : ''),
-              expiryYear: decrypted.expiryYear || (expiryVal.includes('/') ? expiryVal.split('/')[1] : ''),
-              cvv: decrypted.cvv || '',
-              cardType: decrypted.cardType || 'General',
-              bankName: decrypted.bankName,
-              nickname: decrypted.nickname,
-              notes: decrypted.notes,
-            },
-          };
+          const decrypted = await VaultCrypto.decrypt<DecryptedCardData>(item.encryptedPayload);
+          return { ...item, decrypted };
         } catch (err) {
           console.error('Failed to decrypt card:', item._id, err);
           return {
             ...item,
             decrypted: {
-              cardholderName: 'Encrypted Card',
               cardHolderName: 'Encrypted Card',
               cardNumber: '•••• •••• •••• ••••',
-              expiry: '••/••',
+              cardType: 'Card',
               expiryMonth: '••',
               expiryYear: '••',
               cvv: '•••',
-              cardType: 'Card',
             },
           };
         }
@@ -62,19 +40,14 @@ export const cardService = {
   /**
    * Encrypt and create a new card vault item
    */
-  async create(title: string, data: any): Promise<ApiResponse> {
-    const cardholderName = (data.cardholderName || data.cardHolderName || '').trim();
-    const expiry = (data.expiry || (data.expiryMonth ? `${data.expiryMonth}/${data.expiryYear}` : '')).trim();
-
+  async create(title: string, data: DecryptedCardData): Promise<ApiResponse> {
     const encryptedPayload = await VaultCrypto.encrypt({
-      cardholderName,
-      cardHolderName: cardholderName,
+      cardHolderName: (data.cardHolderName || '').trim(),
       cardNumber: (data.cardNumber || '').replace(/\s+/g, ''),
       cardType: data.cardType || 'Visa',
-      expiry,
-      expiryMonth: data.expiryMonth || (expiry.includes('/') ? expiry.split('/')[0] : ''),
-      expiryYear: data.expiryYear || (expiry.includes('/') ? expiry.split('/')[1] : ''),
-      cvv: data.cvv || '',
+      expiryMonth: data.expiryMonth,
+      expiryYear: data.expiryYear,
+      cvv: data.cvv,
       bankName: (data.bankName || '').trim(),
       nickname: (data.nickname || '').trim(),
       notes: (data.notes || '').trim(),
@@ -83,7 +56,7 @@ export const cardService = {
     const res = await api.post<ApiResponse>('/cards', {
       title: title.trim(),
       encryptedPayload,
-      encryptionVersion: '2',
+      encryptionVersion: '1',
     });
     return res.data;
   },
@@ -91,19 +64,14 @@ export const cardService = {
   /**
    * Encrypt and update an existing card vault item
    */
-  async update(id: string, title: string, data: any): Promise<ApiResponse> {
-    const cardholderName = (data.cardholderName || data.cardHolderName || '').trim();
-    const expiry = (data.expiry || (data.expiryMonth ? `${data.expiryMonth}/${data.expiryYear}` : '')).trim();
-
+  async update(id: string, title: string, data: DecryptedCardData): Promise<ApiResponse> {
     const encryptedPayload = await VaultCrypto.encrypt({
-      cardholderName,
-      cardHolderName: cardholderName,
+      cardHolderName: (data.cardHolderName || '').trim(),
       cardNumber: (data.cardNumber || '').replace(/\s+/g, ''),
       cardType: data.cardType || 'Visa',
-      expiry,
-      expiryMonth: data.expiryMonth || (expiry.includes('/') ? expiry.split('/')[0] : ''),
-      expiryYear: data.expiryYear || (expiry.includes('/') ? expiry.split('/')[1] : ''),
-      cvv: data.cvv || '',
+      expiryMonth: data.expiryMonth,
+      expiryYear: data.expiryYear,
+      cvv: data.cvv,
       bankName: (data.bankName || '').trim(),
       nickname: (data.nickname || '').trim(),
       notes: (data.notes || '').trim(),
@@ -112,7 +80,7 @@ export const cardService = {
     const res = await api.put<ApiResponse>(`/cards/${id}`, {
       title: title.trim(),
       encryptedPayload,
-      encryptionVersion: '2',
+      encryptionVersion: '1',
     });
     return res.data;
   },

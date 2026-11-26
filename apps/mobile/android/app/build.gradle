@@ -1,15 +1,5 @@
 apply plugin: 'com.android.application'
 
-def getVersionCodeFromProp = { ->
-    def code = project.hasProperty('versionCode') ? project.property('versionCode').toInteger() : 3
-    return code
-}
-
-def getVersionNameFromProp = { ->
-    def name = project.hasProperty('versionName') ? project.property('versionName').toString() : "1.2.0"
-    return name
-}
-
 android {
     namespace "com.securesave.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -17,8 +7,8 @@ android {
         applicationId "com.securesave.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode getVersionCodeFromProp()
-        versionName getVersionNameFromProp()
+        versionCode 1
+        versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -26,45 +16,9 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-
-    signingConfigs {
-        release {
-            def keystorePropertiesFile = rootProject.file("keystore.properties")
-            def keystoreProperties = new Properties()
-            if (keystorePropertiesFile.exists()) {
-                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-            }
-
-            def envKeystorePath = System.getenv("SECURESAVE_KEYSTORE_PATH")
-            def envKeystorePassword = System.getenv("SECURESAVE_KEYSTORE_PASSWORD")
-            def envKeyAlias = System.getenv("SECURESAVE_KEY_ALIAS")
-            def envKeyPassword = System.getenv("SECURESAVE_KEY_PASSWORD")
-
-            def propKeystorePath = keystoreProperties['KEYSTORE_PATH']
-            def propKeystorePassword = keystoreProperties['KEYSTORE_PASSWORD']
-            def propKeyAlias = keystoreProperties['KEY_ALIAS']
-            def propKeyPassword = keystoreProperties['KEY_PASSWORD']
-
-            def targetKeyPath = envKeystorePath ?: (propKeystorePath ?: '../release-key.jks')
-            def keystoreFile = file(targetKeyPath)
-
-            if (keystoreFile.exists()) {
-                storeFile keystoreFile
-                storePassword envKeystorePassword ?: (propKeystorePassword ?: "securesave2026")
-                keyAlias envKeyAlias ?: (propKeyAlias ?: "securesave")
-                keyPassword envKeyPassword ?: (propKeyPassword ?: "securesave2026")
-            }
-        }
-    }
-
     buildTypes {
-        debug {
-            // Debug builds use debug signing unless explicit release key requested
-            // Keeping release & debug separated ensures proper development sandboxing
-        }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

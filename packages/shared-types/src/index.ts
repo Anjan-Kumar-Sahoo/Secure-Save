@@ -124,9 +124,6 @@ export interface DecryptedCollectionItemData {
   mimeType?: string;
   fileName?: string;
   fileSize?: number;
-  fileId?: string;
-  storageKey?: string;
-  mediaBase64?: string;
   metadata?: Record<string, any>;
 }
 

@@ -1,46 +1,41 @@
-# Secure Save - Encryption & Key Management (v1.2.0 Zero-Knowledge)
+# Secure Save - Encryption & Key Management
 
-## Architecture Overview
+## Key Generation
 
-Secure Save uses a true **Zero-Knowledge Architecture**:
-- All vault records (cards, passwords, bank details, collections, files) are encrypted on the client with AES-256-GCM using a user-specific 256-bit **Data Encryption Key (DEK)**.
-- The DEK is held strictly in JavaScript runtime memory (`VaultKeyManager.getActiveDek()`) and is never written to disk, local storage, or transmitted in plaintext.
-- The DEK is wrapped (encrypted) on registration with a 256-bit **Key Encryption Key (KEK)** derived from the user's Master Password using **PBKDF2-HMAC-SHA256 (600,000 iterations)**.
-- The DEK is independently wrapped with a Recovery KEK derived from a user-controlled 192-bit **Recovery Key** (`RCV-XXXX-XXXX...`).
-- Authenticated Additional Data (AAD) binds record metadata (`userId`, `recordId`, `recordType`, `version`) to the AES-GCM ciphertext to protect against transposition attacks.
-- Legacy records encrypted with `SecureSave-ClientVaultKey-v1` are isolated to `VaultKeyManager.getLegacyKeyForMigration()` and upgraded transparently to per-user v2 DEKs upon access.
-
-## Key Generation & Properties
-
-### Vault Encryption Key (Client-Side DEK)
+### Vault Encryption Key (Client-Side)
 
 | Property | Value |
 |----------|-------|
 | **Algorithm** | AES-256-GCM |
 | **Key Size** | 256 bits (32 random bytes) |
-| **Generation** | `crypto.getRandomValues(new Uint8Array(32))` |
-| **Entropy Source** | Web Crypto API cryptographically secure RNG |
-| **Storage** | In-memory only; wrapped with KEK and saved as `wrappedDek` + `kekSalt` |
-| **Server Knowledge** | Zero knowledge. Server only stores ciphertext envelope. |
+| **Generation** | `crypto.getRandomValues(new Uint8Array(32))` or `window.crypto.getRandomValues()` |
+| **Entropy Source** | Browser/Web Crypto API cryptographically secure RNG |
+| **When Generated** | On user registration (first app launch) |
+| **Storage** | Never stored on server; protected by PIN + Android Keystore |
+| **Never** | Transmitted to backend, logged, or embedded in APK |
 
-### Master Password Key Derivation (KEK)
-
-| Property | Value |
-|----------|-------|
-| **Algorithm** | PBKDF2-HMAC-SHA256 |
-| **Iterations** | 600,000 iterations (OWASP standard; backward compatible with 100,000) |
-| **Salt** | 16 cryptographically random bytes |
-| **Purpose** | Wrap and unwrap the raw DEK |
-
-### Cryptographic Recovery Key
+### PIN Derivation (bcrypt)
 
 | Property | Value |
 |----------|-------|
-| **Algorithm** | PBKDF2-HMAC-SHA256 derivation of Recovery KEK + AES-256-GCM |
-| **Format** | `RCV-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX` (192-bit secret) |
-| **Storage** | `recoveryWrappedDek` and `recoverySalt` in user document |
-| **Purpose** | Restore access and re-wrap DEK with a new Master Password if forgotten |
+| **Algorithm** | bcrypt |
+| **Rounds** | 12 (configurable via `BCRYPT_SALT_ROUNDS` env var) |
+| **Purpose** | Hash the user's 4-6 digit PIN for secure storage |
+| **Input** | PIN as string (4-6 digits) |
+| **Output** | Hashed string stored in `users.recoveryKeyEncrypted` |
+| **Verification** | `bcrypt.compare(attemptedPin, storedHash)` |
+| **Never** | Used as direct AES-256-GCM key (would be vulnerable to brute-force) |
 
+### Recovery Key (Separate from PIN)
+
+| Property | Value |
+|----------|-------|
+| **Algorithm** | AES-256-GCM encryption of recovery key |
+| **Size** | 256 bits (32 random bytes) |
+| **Generated** | At user registration, alongside vault key |
+| **Stored** | Encrypted with vault key in user record metadata |
+| **Never** | Stored in plaintext; never transmitted |
+| **Purpose** | Recover vault access if PIN is forgotten |
 
 ### Key Hierarchy Summary
 

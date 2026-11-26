@@ -18,21 +18,17 @@ import {
   FolderOpen,
   Eye,
   Check,
-  Upload,
-  Download,
-  FileUp,
-  FileCheck,
-  Paperclip,
 } from 'lucide-react';
 import api, { getApiErrorMessage } from '../../../services/api';
-import { collectionService } from '../../../services';
 import { VaultCrypto } from '../../../utils/vaultCrypto';
-import { CollectionItemType, DecryptedCollectionItemData } from '@secure-save/shared-types';
 
-export type ItemType = CollectionItemType;
+export type ItemType = 'text' | 'image' | 'video' | 'audio' | 'file';
 
-export interface DecryptedItemData extends DecryptedCollectionItemData {
+export interface DecryptedItemData {
+  content?: string;
   notes?: string;
+  fileName?: string;
+  fileSize?: string;
   mediaBase64?: string;
 }
 
@@ -63,13 +59,6 @@ export const CollectionDetail: React.FC = () => {
   const [deleteConfirmCollection, setDeleteConfirmCollection] = React.useState(false);
   const [formError, setFormError] = React.useState('');
 
-  // Universal File Upload State
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = React.useState<string>('');
-  const [isDownloading, setIsDownloading] = React.useState(false);
-
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-
   // Fetch parent collection details
   const { data: collection, isLoading: isLoadingCollection } = useQuery({
     queryKey: ['collection-detail', collectionId],
@@ -98,7 +87,7 @@ export const CollectionDetail: React.FC = () => {
             console.error('Failed to decrypt collection item:', item._id, err);
             return {
               ...item,
-              decrypted: { title: item.title, content: 'Encrypted item content' },
+              decrypted: { content: 'Encrypted item content' },
             };
           }
         })
@@ -108,7 +97,7 @@ export const CollectionDetail: React.FC = () => {
     enabled: !!collectionId,
   });
 
-  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm<{
+  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<{
     title: string;
     content: string;
     notes: string;
@@ -118,21 +107,9 @@ export const CollectionDetail: React.FC = () => {
 
   const handleOpenAdd = (type: ItemType) => {
     setSelectedItemType(type);
-    setSelectedFile(null);
-    setUploadProgress('');
     setFormError('');
     reset({ title: '', content: '', notes: '' });
     setIsAddModalOpen(true);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      // Auto-populate title if empty
-      setValue('title', file.name);
-      setFormError('');
-    }
   };
 
   const onSubmitItem = async (formData: { title: string; content: string; notes: string }) => {
@@ -141,49 +118,15 @@ export const CollectionDetail: React.FC = () => {
       setFormError('Item title is required.');
       return;
     }
+    if (!formData.content.trim()) {
+      setFormError('Content or notes cannot be empty.');
+      return;
+    }
 
     try {
-      let fileId: string | undefined;
-      let storageKey: string | undefined;
-      let fileName: string | undefined;
-      let fileSize: number | undefined;
-      let mimeType: string | undefined;
-
-      // If it is a file upload (Photo, Document, or Files)
-      if (selectedFile) {
-        setUploadProgress('Encrypting file on client...');
-        const arrayBuffer = await selectedFile.arrayBuffer();
-
-        // 1. Client-side AES-256 authenticated encryption of the raw binary
-        const encryptedBase64 = await VaultCrypto.encryptBinary(arrayBuffer);
-
-        setUploadProgress('Uploading encrypted payload...');
-        const uploadResult = await collectionService.uploadFile(
-          selectedFile.name,
-          selectedFile.type || 'application/octet-stream',
-          encryptedBase64
-        );
-
-        fileId = uploadResult.fileId;
-        storageKey = uploadResult.storageKey;
-        fileName = selectedFile.name;
-        fileSize = selectedFile.size;
-        mimeType = selectedFile.type || 'application/octet-stream';
-      } else if (selectedItemType === 'text' && !formData.content.trim()) {
-        setFormError('Text note content cannot be empty.');
-        return;
-      }
-
-      setUploadProgress('Saving vault item...');
       const payloadToEncrypt: DecryptedItemData = {
-        title: formData.title.trim(),
         content: formData.content.trim(),
         notes: (formData.notes || '').trim(),
-        fileName,
-        fileSize,
-        mimeType,
-        fileId,
-        storageKey,
       };
 
       const encryptedPayload = await VaultCrypto.encrypt(payloadToEncrypt);
@@ -193,48 +136,13 @@ export const CollectionDetail: React.FC = () => {
         title: formData.title.trim(),
         encryptedPayload,
         encryptionVersion: '1',
-        fileReferences: fileId ? [fileId] : [],
       });
 
       await queryClient.invalidateQueries({ queryKey: ['collection-items', collectionId] });
       await queryClient.invalidateQueries({ queryKey: ['vault-collections'] });
       setIsAddModalOpen(false);
-      setSelectedFile(null);
-      setUploadProgress('');
     } catch (err) {
       setFormError(getApiErrorMessage(err, 'Failed to save item.'));
-      setUploadProgress('');
-    }
-  };
-
-  const handleDownloadDecryptedFile = async (item: CollectionItemRecord) => {
-    const fileId = item.decrypted?.fileId || (item.fileReferences && item.fileReferences[0]);
-    if (!fileId) {
-      alert('No attached file in this item.');
-      return;
-    }
-
-    try {
-      setIsDownloading(true);
-      const downloadData = await collectionService.downloadFile(fileId);
-
-      // Decrypt the raw binary client-side
-      const decryptedBuffer = await VaultCrypto.decryptBinary(downloadData.encryptedBase64);
-
-      // Trigger client file save
-      const blob = new Blob([decryptedBuffer], { type: downloadData.mimeType || 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = downloadData.fileName || item.decrypted?.fileName || 'download';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      alert(getApiErrorMessage(err, 'Failed to download and decrypt file.'));
-    } finally {
-      setIsDownloading(false);
     }
   };
 
@@ -262,7 +170,7 @@ export const CollectionDetail: React.FC = () => {
     }
   };
 
-  const getItemIcon = (type: ItemType, mimeType?: string) => {
+  const getItemIcon = (type: ItemType) => {
     switch (type) {
       case 'text':
         return <FileText className="w-5 h-5 text-violet-400" />;
@@ -274,18 +182,8 @@ export const CollectionDetail: React.FC = () => {
         return <Mic className="w-5 h-5 text-amber-400" />;
       case 'file':
       default:
-        if (mimeType?.includes('pdf') || mimeType?.includes('document')) {
-          return <FileText className="w-5 h-5 text-rose-400" />;
-        }
         return <File className="w-5 h-5 text-fuchsia-400" />;
     }
-  };
-
-  const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
   return (
@@ -345,7 +243,7 @@ export const CollectionDetail: React.FC = () => {
               )}
             </div>
 
-            {/* Four Action Options: Text Note, Photo, Document, Files */}
+            {/* Quick Add Action Buttons (Section 16.2) */}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => handleOpenAdd('text')}
@@ -358,23 +256,15 @@ export const CollectionDetail: React.FC = () => {
                 onClick={() => handleOpenAdd('image')}
                 className="btn-secondary text-xs py-2 px-3"
               >
-                <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+                <ImageIcon className="w-3.5 h-3.5" />
                 <span>Photo</span>
               </button>
               <button
                 onClick={() => handleOpenAdd('file')}
                 className="btn-secondary text-xs py-2 px-3"
               >
-                <FileText className="w-3.5 h-3.5 text-blue-400" />
+                <File className="w-3.5 h-3.5" />
                 <span>Document</span>
-              </button>
-              <button
-                onClick={() => handleOpenAdd('file')}
-                className="btn-secondary text-xs py-2 px-3 bg-violet-500/10 border-violet-500/30 text-violet-200 hover:bg-violet-500/20"
-                title="Universal file upload (arbitrary formats)"
-              >
-                <FileUp className="w-3.5 h-3.5 text-violet-400" />
-                <span>Files</span>
               </button>
             </div>
           </div>
@@ -391,7 +281,7 @@ export const CollectionDetail: React.FC = () => {
             <FolderOpen className="w-12 h-12 text-vault-muted mx-auto mb-3 opacity-60" />
             <h3 className="font-display font-bold text-base text-vault-text">No Items in this Space</h3>
             <p className="text-xs text-vault-muted mt-1 leading-relaxed">
-              Add your confidential notes, photos, documents, or arbitrary files using the options above.
+              Add your confidential notes, documents, or memory items using the buttons above.
             </p>
           </div>
         ) : (
@@ -402,8 +292,6 @@ export const CollectionDetail: React.FC = () => {
                 day: 'numeric',
               });
 
-              const isFileAttachment = !!(item.decrypted?.fileId || (item.fileReferences && item.fileReferences.length > 0));
-
               return (
                 <div
                   key={item._id}
@@ -413,7 +301,7 @@ export const CollectionDetail: React.FC = () => {
                   <div>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="p-2 rounded-xl bg-vault-surface border border-white/5">
-                        {getItemIcon(item.itemType, item.decrypted?.mimeType)}
+                        {getItemIcon(item.itemType)}
                       </div>
                       <button
                         onClick={(e) => {
@@ -430,32 +318,14 @@ export const CollectionDetail: React.FC = () => {
                     <h4 className="font-display font-bold text-sm text-vault-text group-hover:text-vault-accentLight transition-colors truncate">
                       {item.title}
                     </h4>
-
-                    {isFileAttachment ? (
-                      <div className="mt-2 p-2 rounded-lg bg-vault-surface/40 border border-white/5 flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-mono text-vault-text truncate">
-                            {item.decrypted?.fileName || 'Attached File'}
-                          </p>
-                          <span className="text-[10px] text-vault-muted font-mono">
-                            {formatFileSize(item.decrypted?.fileSize)}
-                          </span>
-                        </div>
-                        <Download className="w-3.5 h-3.5 text-vault-muted group-hover:text-vault-accentLight shrink-0" />
-                      </div>
-                    ) : (
-                      <p className="text-xs text-vault-muted mt-1 line-clamp-2 leading-relaxed">
-                        {item.decrypted?.content || 'Encrypted note'}
-                      </p>
-                    )}
+                    <p className="text-xs text-vault-muted mt-1 line-clamp-2 leading-relaxed">
+                      {item.decrypted?.content || 'Encrypted content'}
+                    </p>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-vault-borderSubtle flex items-center justify-between text-[11px] text-vault-subtle">
-                    <span className="flex items-center gap-1 font-mono">
-                      <Calendar className="w-3 h-3 text-vault-muted" />
-                      {formattedDate}
-                    </span>
+                  <div className="mt-4 pt-2.5 border-t border-vault-borderSubtle flex items-center justify-between text-[11px] text-vault-subtle">
                     <span className="capitalize">{item.itemType}</span>
+                    <span>{formattedDate}</span>
                   </div>
                 </div>
               );
@@ -467,14 +337,11 @@ export const CollectionDetail: React.FC = () => {
       {/* Add Item Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
-          <div className="glass-surface w-full max-w-lg p-6 relative">
+          <div className="glass-surface w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-vault-borderSubtle">
-              <div className="flex items-center gap-2">
-                {getItemIcon(selectedItemType)}
-                <h3 className="font-display font-bold text-lg text-vault-text">
-                  {selectedItemType === 'text' ? 'New Text Note' : 'Add Encrypted File / Media'}
-                </h3>
-              </div>
+              <h3 className="font-display font-bold text-lg text-vault-text capitalize">
+                Add {selectedItemType} to Collection
+              </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
                 className="p-1 rounded-lg text-vault-muted hover:text-vault-text"
@@ -484,7 +351,7 @@ export const CollectionDetail: React.FC = () => {
             </div>
 
             {formError && (
-              <div className="mb-4 p-3 rounded-xl bg-vault-danger/10 border border-vault-danger/30 flex items-center gap-2 text-xs text-vault-danger">
+              <div className="mb-4 p-3 rounded-xl border border-vault-danger/30 bg-vault-danger/10 text-vault-danger text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
@@ -496,63 +363,23 @@ export const CollectionDetail: React.FC = () => {
                   Item Title *
                 </label>
                 <input
-                  {...register('title')}
-                  placeholder="e.g. Tax Statement 2026, Passphrase Seed, Master Backup"
+                  {...register('title', { required: true })}
+                  placeholder="e.g. WiFi Passwords, Passport Scan Note, Meeting Memo"
                   className="input-vault"
                 />
               </div>
 
-              {/* Universal File Selector */}
-              {selectedItemType !== 'text' && (
-                <div>
-                  <label className="block text-xs font-semibold text-vault-muted mb-1.5">
-                    Select File (Arbitrary Formats: Images, Videos, Audio, Docs, Archives, Any Type)
-                  </label>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-4 rounded-xl border border-dashed border-violet-500/40 bg-vault-surface/40 hover:bg-vault-surface/70 cursor-pointer flex flex-col items-center justify-center gap-2 text-center transition-colors"
-                  >
-                    {selectedFile ? (
-                      <>
-                        <FileCheck className="w-7 h-7 text-emerald-400" />
-                        <div>
-                          <p className="text-xs font-bold text-vault-text">{selectedFile.name}</p>
-                          <p className="text-[10px] text-vault-muted font-mono">{formatFileSize(selectedFile.size)} • {selectedFile.type || 'Custom Type'}</p>
-                        </div>
-                        <span className="text-[10px] text-violet-300 underline mt-1">Change file</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-7 h-7 text-vault-accentLight" />
-                        <div>
-                          <p className="text-xs font-semibold text-vault-text">Click to browse device storage</p>
-                          <p className="text-[10px] text-vault-muted">Supports any file extension or binary format</p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {selectedItemType === 'text' && (
-                <div>
-                  <label className="block text-xs font-semibold text-vault-muted mb-1">
-                    Confidential Content *
-                  </label>
-                  <textarea
-                    {...register('content')}
-                    rows={5}
-                    placeholder="Enter confidential notes, seed phrases, recovery codes..."
-                    className="input-vault resize-none"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-semibold text-vault-muted mb-1">
+                  {selectedItemType === 'text' ? 'Encrypted Note Content *' : 'Description / Content *'}
+                </label>
+                <textarea
+                  {...register('content', { required: true })}
+                  rows={5}
+                  placeholder="Enter sensitive contents to be encrypted with AES-256-GCM..."
+                  className="input-vault"
+                />
+              </div>
 
               <div>
                 <label className="block text-xs font-semibold text-vault-muted mb-1">
@@ -565,13 +392,6 @@ export const CollectionDetail: React.FC = () => {
                 />
               </div>
 
-              {uploadProgress && (
-                <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-xs text-violet-300 flex items-center gap-2 animate-pulse">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
-                  <span>{uploadProgress}</span>
-                </div>
-              )}
-
               <div className="pt-2 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
@@ -583,16 +403,9 @@ export const CollectionDetail: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="btn-primary text-xs flex items-center gap-1.5"
+                  className="btn-primary text-xs"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Encrypting...</span>
-                    </>
-                  ) : (
-                    <span>Save Item</span>
-                  )}
+                  {isSubmitting ? 'Encrypting & Saving...' : 'Save Item'}
                 </button>
               </div>
             </form>
@@ -606,7 +419,7 @@ export const CollectionDetail: React.FC = () => {
           <div className="glass-surface w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-vault-borderSubtle">
               <div className="flex items-center gap-2">
-                {getItemIcon(viewingItem.itemType, viewingItem.decrypted?.mimeType)}
+                {getItemIcon(viewingItem.itemType)}
                 <h3 className="font-display font-bold text-lg text-vault-text">
                   {viewingItem.title}
                 </h3>
@@ -620,48 +433,9 @@ export const CollectionDetail: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {/* File Attachment Details */}
-              {(viewingItem.decrypted?.fileId || (viewingItem.fileReferences && viewingItem.fileReferences.length > 0)) ? (
-                <div className="p-4 rounded-xl bg-vault-surface/60 border border-white/5 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Paperclip className="w-5 h-5 text-violet-400 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-vault-text truncate">
-                          {viewingItem.decrypted?.fileName || viewingItem.title}
-                        </p>
-                        <p className="text-[10px] text-vault-muted font-mono">
-                          {formatFileSize(viewingItem.decrypted?.fileSize)} • {viewingItem.decrypted?.mimeType || 'Binary'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleDownloadDecryptedFile(viewingItem)}
-                      disabled={isDownloading}
-                      className="btn-primary text-xs py-2 px-3 flex items-center gap-1.5 shrink-0"
-                    >
-                      {isDownloading ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>Decrypting...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-3.5 h-3.5" />
-                          <span>Download</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {viewingItem.decrypted?.content && (
-                <div className="p-4 rounded-xl bg-vault-bg border border-vault-borderSubtle text-xs sm:text-sm text-vault-text whitespace-pre-wrap leading-relaxed font-sans">
-                  {viewingItem.decrypted.content}
-                </div>
-              )}
+              <div className="p-4 rounded-xl bg-vault-bg border border-vault-borderSubtle text-xs sm:text-sm text-vault-text whitespace-pre-wrap leading-relaxed font-sans">
+                {viewingItem.decrypted?.content || 'No content.'}
+              </div>
 
               {viewingItem.decrypted?.notes && (
                 <div className="text-xs text-vault-muted">
