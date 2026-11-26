@@ -20,28 +20,11 @@ import {
   RefreshCw,
   Sliders,
 } from 'lucide-react';
-import api, { getApiErrorMessage } from '../../services/api';
+import { getApiErrorMessage, passwordService } from '../../services';
 import { VaultCrypto } from '../../utils/vaultCrypto';
+import { PasswordRecord, DecryptedPasswordData } from '@secure-save/shared-types';
 
-export interface DecryptedPasswordData {
-  title: string;
-  username?: string;
-  email?: string;
-  password: string;
-  websiteUrl?: string;
-  notes?: string;
-}
-
-export interface PasswordRecord {
-  _id: string;
-  id?: string;
-  userId: string;
-  encryptedPayload: string;
-  encryptionVersion: string;
-  createdAt: string;
-  updatedAt: string;
-  decrypted?: DecryptedPasswordData;
-}
+export type { DecryptedPasswordData, PasswordRecord };
 
 export const PasswordListing: React.FC = () => {
   const navigate = useNavigate();
@@ -68,30 +51,7 @@ export const PasswordListing: React.FC = () => {
   // Fetch passwords from real backend and decrypt client-side
   const { data: passwords = [], isLoading, refetch } = useQuery({
     queryKey: ['passwords-list'],
-    queryFn: async () => {
-      const res = await api.get('/passwords');
-      const rawPasswords: PasswordRecord[] = res.data?.data?.passwords || [];
-
-      // Decrypt each password payload
-      const decryptedList = await Promise.all(
-        rawPasswords.map(async (item) => {
-          try {
-            const decrypted = await VaultCrypto.decrypt<DecryptedPasswordData>(item.encryptedPayload);
-            return { ...item, decrypted };
-          } catch (err) {
-            console.error('Failed to decrypt password:', item._id, err);
-            return {
-              ...item,
-              decrypted: {
-                title: 'Encrypted Entry',
-                password: '••••••••••••',
-              },
-            };
-          }
-        })
-      );
-      return decryptedList;
-    },
+    queryFn: () => passwordService.getAll(),
   });
 
   const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm<DecryptedPasswordData>({
@@ -183,18 +143,10 @@ export const PasswordListing: React.FC = () => {
         notes: (formData.notes || '').trim(),
       };
 
-      const encryptedPayload = await VaultCrypto.encrypt(payloadToEncrypt);
-
       if (editingPassword) {
-        await api.put(`/passwords/${editingPassword._id}`, {
-          encryptedPayload,
-          encryptionVersion: '1',
-        });
+        await passwordService.update(editingPassword._id, payloadToEncrypt);
       } else {
-        await api.post('/passwords', {
-          encryptedPayload,
-          encryptionVersion: '1',
-        });
+        await passwordService.create(payloadToEncrypt);
       }
 
       await queryClient.invalidateQueries({ queryKey: ['passwords-list'] });
@@ -209,7 +161,7 @@ export const PasswordListing: React.FC = () => {
   // Delete Password
   const handleDelete = async (id: string) => {
     try {
-      await api.delete(`/passwords/${id}`);
+      await passwordService.delete(id);
       await queryClient.invalidateQueries({ queryKey: ['passwords-list'] });
       await queryClient.invalidateQueries({ queryKey: ['vault-passwords'] });
       setDeleteConfirmId(null);

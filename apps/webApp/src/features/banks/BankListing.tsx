@@ -21,7 +21,7 @@ import {
   PlusCircle,
   MinusCircle,
 } from 'lucide-react';
-import api, { getApiErrorMessage } from '../../services/api';
+import { getApiErrorMessage, bankService, cardService, api } from '../../services';
 import { VaultCrypto } from '../../utils/vaultCrypto';
 
 export interface CustomField {
@@ -98,10 +98,7 @@ export const BankListing: React.FC = () => {
   // Fetch cards to allow card linking (Section 14.4)
   const { data: userCards = [] } = useQuery({
     queryKey: ['cards-for-linking'],
-    queryFn: async () => {
-      const res = await api.get('/cards');
-      return res.data?.data?.cards || [];
-    },
+    queryFn: () => cardService.getAll(),
   });
 
   const { register, control, handleSubmit, reset, formState: { isSubmitting } } = useForm<{
