@@ -76,7 +76,19 @@ export const AppUpdateModal: React.FC = () => {
   const handleUpdate = () => {
     setIsDownloading(true);
     // Open direct APK download link in external browser/system download manager
-    window.open(updateInfo.downloadUrl, '_system');
+    try {
+      // Create a temporary anchor element with target="_blank" and rel="noopener noreferrer"
+      // This is the most reliable cross-platform way for WebView to hand off APK downloads to the Android Download Manager
+      const link = document.createElement('a');
+      link.href = updateInfo.downloadUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch {
+      window.open(updateInfo.downloadUrl, '_system');
+    }
     setTimeout(() => {
       setIsDownloading(false);
       setIsOpen(false);

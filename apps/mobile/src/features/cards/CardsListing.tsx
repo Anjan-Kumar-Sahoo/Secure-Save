@@ -329,29 +329,56 @@ export const CardsListing: React.FC = () => {
               const isCvvRevealed = !!revealedCVVs[card._id];
               const cleanNumber = decrypted?.cardNumber || '';
 
-              // Visual styling per card type
-              const gradient =
-                decrypted?.cardType === 'Mastercard'
-                  ? 'from-[#B45309]/30 via-[#78350F]/20 to-vault-surface'
-                  : decrypted?.cardType === 'Amex'
-                  ? 'from-[#0D9488]/30 via-[#115E59]/20 to-vault-surface'
-                  : 'from-violet-900/40 via-purple-950/30 to-vault-surface';
+              // Visual styling per card type with realistic gradients & network accents
+              const type = (decrypted?.cardType || 'Visa').toLowerCase();
+              let gradient = 'from-[#1e1b4b] via-[#31104b] to-[#0f172a]';
+              let badgeStyle = 'bg-blue-500/20 text-blue-300 border-blue-400/30';
+              let borderStyle = 'border-blue-500/30 shadow-blue-950/40';
+
+              if (type.includes('mastercard')) {
+                gradient = 'from-[#7c2d12] via-[#431407] to-[#18181b]';
+                badgeStyle = 'bg-amber-500/20 text-amber-300 border-amber-400/30';
+                borderStyle = 'border-amber-500/30 shadow-amber-950/40';
+              } else if (type.includes('amex') || type.includes('american')) {
+                gradient = 'from-[#064e3b] via-[#022c22] to-[#090d16]';
+                badgeStyle = 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30';
+                borderStyle = 'border-emerald-500/30 shadow-emerald-950/40';
+              } else if (type.includes('rupay')) {
+                gradient = 'from-[#0369a1] via-[#0c4a6e] to-[#1e1b4b]';
+                badgeStyle = 'bg-cyan-500/20 text-cyan-300 border-cyan-400/30';
+                borderStyle = 'border-cyan-500/30 shadow-cyan-950/40';
+              } else if (type.includes('discover')) {
+                gradient = 'from-[#9a3412] via-[#7c2d12] to-[#1e1b4b]';
+                badgeStyle = 'bg-orange-500/20 text-orange-300 border-orange-400/30';
+                borderStyle = 'border-orange-500/30 shadow-orange-950/40';
+              }
 
               return (
                 <div
                   key={card._id}
-                  className="glass-card p-5 flex flex-col justify-between border border-vault-borderSubtle hover:border-vault-accentLight/30 transition-all relative overflow-hidden"
+                  className={`glass-card p-5 flex flex-col justify-between border ${borderStyle} hover:border-white/30 transition-all relative overflow-hidden shadow-xl rounded-2xl group`}
                 >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${gradient} pointer-events-none opacity-50`} />
+                  {/* Luxury dynamic gradient background */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${gradient} pointer-events-none opacity-85`} />
+                  <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-white/5 blur-2xl pointer-events-none group-hover:scale-125 transition-transform" />
 
-                  <div className="relative">
-                    {/* Top Row: Title & Card Type */}
+                  <div className="relative z-10">
+                    {/* Top Row: Title, Chip & Card Type */}
                     <div className="flex items-start justify-between gap-2 mb-4">
                       <div className="min-w-0">
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-vault-accentLight px-2 py-0.5 rounded bg-vault-accentMuted border border-vault-accentLight/20">
-                          {decrypted?.cardType || 'Card'}
-                        </span>
-                        <h3 className="font-display font-bold text-base text-vault-text mt-1.5 truncate">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          {/* Realistic Metallic Smart Chip Icon */}
+                          <div className="w-7 h-5 rounded bg-gradient-to-tr from-amber-400/80 via-yellow-200/90 to-amber-500/80 border border-amber-300/60 shadow-inner flex items-center justify-center">
+                            <div className="w-3.5 h-2.5 border border-amber-800/40 rounded-sm grid grid-cols-2 gap-0.5">
+                              <div className="border-r border-amber-800/30"></div>
+                              <div></div>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] uppercase font-mono font-bold tracking-wider px-2 py-0.5 rounded border ${badgeStyle}`}>
+                            {decrypted?.cardType || 'Card'}
+                          </span>
+                        </div>
+                        <h3 className="font-display font-bold text-base text-white tracking-wide truncate drop-shadow-sm">
                           {card.title}
                         </h3>
                       </div>

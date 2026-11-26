@@ -67,6 +67,30 @@ export const PasswordListing: React.FC = () => {
 
   const currentPasswordValue = watch('password');
 
+  // Real-time password strength evaluator
+  const passwordStrength = React.useMemo(() => {
+    const pw = currentPasswordValue || '';
+    if (!pw) return { score: 0, label: '', color: '', width: '0%' };
+
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[a-z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+    if (score <= 2) {
+      return { score: 1, label: 'Weak', color: 'bg-rose-500 text-rose-400', width: '25%' };
+    } else if (score <= 4) {
+      return { score: 2, label: 'Fair', color: 'bg-amber-500 text-amber-400', width: '55%' };
+    } else if (score === 5) {
+      return { score: 3, label: 'Strong', color: 'bg-blue-500 text-blue-400', width: '80%' };
+    } else {
+      return { score: 4, label: 'Unbreakable', color: 'bg-emerald-500 text-emerald-400', width: '100%' };
+    }
+  }, [currentPasswordValue]);
+
   // Trigger generator
   const runPasswordGenerator = () => {
     const pw = VaultCrypto.generatePassword({
@@ -466,6 +490,23 @@ export const PasswordListing: React.FC = () => {
                   placeholder="Enter or generate password"
                   className="input-vault font-mono"
                 />
+                {/* Real-time Password Strength Meter */}
+                {currentPasswordValue && (
+                  <div className="mt-2 space-y-1 animate-fadeIn">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-vault-muted">Strength:</span>
+                      <span className={`font-semibold ${passwordStrength.color.split(' ')[1]}`}>
+                        {passwordStrength.label}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 rounded-full ${passwordStrength.color.split(' ')[0]}`}
+                        style={{ width: passwordStrength.width }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Integrated Section 15.3 Password Generator Tool */}
