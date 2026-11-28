@@ -8,7 +8,7 @@
   <p>
     <a href="https://securesave.mraks.dev"><strong>🌐 Live WebApp</strong></a> •
     <a href="https://securesave.mraks.dev/docs"><strong>📖 Interactive Docs</strong></a> •
-    <a href="https://github.com/Anjan-Kumar-Sahoo/Secure-Save/releases/download/latest/securesave.apk"><strong>📱 Download Android APK</strong></a> •
+    <a href="https://github.com/Anjan-Kumar-Sahoo/Secure-Save/releases/latest/download/securesave.apk"><strong>📱 Download Android APK</strong></a> •
     <a href="https://secure-save-blue.vercel.app"><strong>⚡ Backend API</strong></a>
   </p>
 

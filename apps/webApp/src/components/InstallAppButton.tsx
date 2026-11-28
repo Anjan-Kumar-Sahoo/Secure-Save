@@ -26,18 +26,18 @@ export const InstallAppButton: React.FC<InstallAppButtonProps> = ({
   className = '',
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ios' | 'android'>('ios');
+  const [activeTab, setActiveTab] = useState<'android' | 'ios'>('android');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     if (typeof window !== 'undefined' && navigator.userAgent) {
       const ua = navigator.userAgent.toLowerCase();
-      const isAndroid = /android/.test(ua);
-      if (isAndroid) {
-        setActiveTab('android');
-      } else {
+      const isIOS = /iphone|ipad|ipod/.test(ua);
+      if (isIOS) {
         setActiveTab('ios');
+      } else {
+        setActiveTab('android');
       }
     }
   }, []);
@@ -62,11 +62,7 @@ export const InstallAppButton: React.FC<InstallAppButtonProps> = ({
 
   const apkDownloadUrl =
     import.meta.env.VITE_APK_DOWNLOAD_URL ||
-    'https://github.com/Anjan-Kumar-Sahoo/Secure-Save/releases/download/latest/securesave.apk';
-
-  const ipaDownloadUrl =
-    import.meta.env.VITE_IPA_DOWNLOAD_URL ||
-    'https://github.com/Anjan-Kumar-Sahoo/Secure-Save/releases/download/latest/securesave.ipa';
+    'https://github.com/Anjan-Kumar-Sahoo/Secure-Save/releases/latest/download/securesave.apk';
 
   const modalContent = isModalOpen && mounted ? (
     <div
@@ -105,18 +101,6 @@ export const InstallAppButton: React.FC<InstallAppButtonProps> = ({
         {/* Platform Selector Tabs */}
         <div className="grid grid-cols-2 gap-2 my-4 shrink-0">
           <button
-            onClick={() => setActiveTab('ios')}
-            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all ${
-              activeTab === 'ios'
-                ? 'bg-gradient-to-r from-violet-600/35 to-purple-600/35 border border-violet-400/60 text-white shadow-lg shadow-violet-900/30'
-                : 'bg-white/[0.03] border border-white/5 text-vault-muted hover:text-white hover:bg-white/[0.06]'
-            }`}
-          >
-            <Apple className="w-4 h-4 text-white shrink-0" />
-            <span className="truncate">iPhone / iPad (iOS)</span>
-          </button>
-
-          <button
             onClick={() => setActiveTab('android')}
             className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'android'
@@ -126,6 +110,18 @@ export const InstallAppButton: React.FC<InstallAppButtonProps> = ({
           >
             <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
             <span className="truncate">Android (.apk)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ios')}
+            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'ios'
+                ? 'bg-gradient-to-r from-violet-600/35 to-purple-600/35 border border-violet-400/60 text-white shadow-lg shadow-violet-900/30'
+                : 'bg-white/[0.03] border border-white/5 text-vault-muted hover:text-white hover:bg-white/[0.06]'
+            }`}
+          >
+            <Apple className="w-4 h-4 text-white shrink-0" />
+            <span className="truncate">iPhone / iPad (PWA)</span>
           </button>
         </div>
 
@@ -142,7 +138,7 @@ export const InstallAppButton: React.FC<InstallAppButtonProps> = ({
                   </span>
                   <span className="text-[10px] font-mono text-vault-muted">Full Screen</span>
                 </div>
-                <h4 className="text-sm font-bold text-white mb-2">Install via Safari Home Screen</h4>
+                <h4 className="text-sm font-bold text-white mb-2">Install via Safari Home Screen (PWA)</h4>
                 <ol className="space-y-2 text-xs text-vault-muted leading-relaxed">
                   <li className="flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-white/10 text-white font-mono flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
@@ -154,38 +150,24 @@ export const InstallAppButton: React.FC<InstallAppButtonProps> = ({
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-white/10 text-white font-mono flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</span>
-                    <span>Tap <strong>Add</strong> in the top corner. Secure Save will launch like a native application with offline support.</span>
+                    <span>Tap <strong>Add</strong> in the top corner. Secure Save will launch like a standalone app with offline support, full screen mode, and instant updates.</span>
                   </li>
                 </ol>
               </div>
 
-              {/* Method B: Native iOS IPA */}
+              {/* iOS IPA Availability Note */}
               <div className="p-4 rounded-2xl bg-black/30 border border-white/10 space-y-2.5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                      Native iOS IPA Package
-                    </h4>
-                    <p className="text-[11px] text-vault-muted mt-0.5 leading-snug">
-                      Requires Sideloading (AltStore, SideStore, Scarlet, or TrollStore).
+                <div className="flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 text-xs leading-relaxed">
+                    <h5 className="font-bold text-white mb-1">Why is there no direct .IPA download?</h5>
+                    <p className="text-vault-muted text-[11px] leading-relaxed">
+                      Apple iOS restricts direct installation of standalone <code>.ipa</code> packages unless signed with an active Apple Developer certificate or installed via third-party sideloading tools.
+                    </p>
+                    <p className="text-violet-300 text-[11px] mt-1.5 font-medium">
+                      Installing as a <strong>PWA via Safari ("Add to Home Screen")</strong> provides the identical native full-screen experience, biometric keychain access, and zero-configuration updates without expiring certificates or extra software.
                     </p>
                   </div>
-                  <a
-                    href={ipaDownloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary text-xs py-2 px-3 flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download .IPA</span>
-                  </a>
-                </div>
-                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-200/90 leading-relaxed flex items-start gap-2">
-                  <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Apple iOS Note:</strong> Apple does not allow direct installation of .IPA files by simply tapping on them. Use the Safari <strong>"Add to Home Screen"</strong> option above for immediate 1-click installation without extra tools.
-                  </span>
                 </div>
               </div>
             </div>
