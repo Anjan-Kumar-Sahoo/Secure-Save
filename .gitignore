@@ -37,3 +37,14 @@ logs/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Android release signing keystores and local secrets
+*.keystore
+*.jks
+signing-secrets.local.txt
+keystore-base64.local.txt
+apps/mobile/android/release-key.jks
+apps/mobile/android/*.keystore
+apps/mobile/android/*.jks
+apps/mobile/android/keystore.properties
+

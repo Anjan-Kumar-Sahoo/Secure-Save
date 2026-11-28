@@ -1,6 +1,6 @@
 {
   "name": "@secure-save/mobile",
-  "version": "1.0.0",
+  "version": "1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,24 +11,25 @@
     "android:open": "cap open android"
   },
   "dependencies": {
-    "@secure-save/shared-types": "*",
     "@capacitor/android": "^6.0.0",
+    "@capacitor/app": "^6.0.3",
     "@capacitor/core": "^6.0.0",
     "@capacitor/ios": "^6.0.0",
+    "@hookform/resolvers": "^3.5.0",
+    "@secure-save/shared-types": "*",
+    "@tanstack/react-query": "^5.40.0",
+    "axios": "^1.7.2",
+    "clsx": "^2.1.1",
+    "crypto-js": "^4.2.0",
+    "framer-motion": "^11.2.10",
+    "lucide-react": "^0.383.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.23.1",
-    "lucide-react": "^0.383.0",
-    "zustand": "^4.5.2",
-    "framer-motion": "^11.2.10",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^2.3.0",
-    "@tanstack/react-query": "^5.40.0",
     "react-hook-form": "^7.51.5",
+    "react-router-dom": "^6.23.1",
+    "tailwind-merge": "^2.3.0",
     "zod": "^3.23.8",
-    "@hookform/resolvers": "^3.5.0",
-    "axios": "^1.7.2",
-    "crypto-js": "^4.2.0"
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",

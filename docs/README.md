@@ -139,17 +139,28 @@ npm run dev
 npm run dev
 ```
 
-### 6. Android APK Generation
+### 6. Android APK Generation & Signing
+
+Secure Save uses a dedicated, permanent Android release signing key for all official releases.
+
+#### Signing Key Identity
+- **Alias**: `securesave-release`
+- **Certificate SHA-256 Fingerprint**: `EA:F4:6B:9B:61:B6:9B:56:F9:B5:09:8E:F5:58:D5:D1:C3:57:63:1C:FD:7E:52:D3:02:4F:3F:B9:11:0D:32:9C`
+- **Certificate SHA-1 Fingerprint**: `02:69:A0:13:65:67:C9:A2:81:6E:11:CC:9A:60:74:36:1C:A1:C3:72`
+- **DN**: `CN=SecureSave Permanent, OU=Mobile, O=SecureSave, L=Bhubaneswar, ST=Odisha, C=IN`
+- **Validity**: 10,000 days (until year 2054)
+
+> [!IMPORTANT]
+> **One-Time Migration Notice**:
+> Because this is a permanent fresh signing key replacing previous temporary/compromised keystores, Android OS package manager (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`) requires users with earlier builds to **uninstall the existing app once** and install the new release. Subsequent releases signed with this permanent key will update smoothly in-place.
 
 ```bash
 # Sync Capacitor with Android
 npx cap sync android
 
-# Open in Android Studio
-npx cap open android
-
-# Build release APK in Android Studio
-# Generate signed release APK
+# Build release APK (requires signing environment variables or CI)
+cd apps/mobile/android
+./gradlew assembleRelease
 ```
 
 ## Development Commands
